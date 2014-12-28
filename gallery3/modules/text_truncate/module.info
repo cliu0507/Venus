@@ -1,0 +1,7 @@
+name = "Text truncate"
+description = "Truncates long descriptions and adds a more / less link to the text being truncted."
+author_name = "floridave"
+author_url = "http://codex.gallery2.org/User:Floridave"
+info_url = "http://codex.gallery2.org/Gallery3:Modules:text_truncate"
+discuss_url = "http://gallery.menalto.com/forum_module_text_truncate"
+version = 1

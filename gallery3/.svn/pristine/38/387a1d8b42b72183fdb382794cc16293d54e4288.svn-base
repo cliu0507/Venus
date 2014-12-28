@@ -1,0 +1,177 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+function test_func(index) {
+    console.log("dfw: test function index = " + index);
+    
+    switch(index) {
+        case 1:
+            $.post("http://192.168.1.111/myfashion-svn/main.php?g2_controller=remote:GalleryRemote&g2_form[cmd]=albums&" +
+                   "g2_form[offset]=0&g2_form[count]=3&g2_form[userId]=" + window.localStorage["mf_userId"] +
+                   "&g2_form[type]=AlbumFashion&g2_form[sub1]=z&g2_form[sub2]=z&g2_form[by]=rating&g2_form[direction]=desc",
+                function(res) {
+                    console.log(JSON.stringify(res));
+                    
+                    //console.log("dfw test: param1 = " + res.param1);
+                    
+                    //console.log("dfw test: param2 = " + res.param2[1].name + " " + res.param2[1].path);
+                }, "json"); 
+            
+            $.post("http://192.168.1.111/myfashion-svn/main.php?g2_controller=remote:GalleryRemote&g2_form[cmd]=fetch-albums",
+                function(res) {
+                    console.log(JSON.stringify(res));
+                }, "json"); 
+                
+            break;
+    }
+}
+
+function formRemoteURL(argArray) {
+    var urlPrefix = "http://192.168.1.111/myfashion-svn/main.php?g2_controller=remote:GalleryRemote&";
+    var returnURL;
+    
+    switch(argArray.cmd) {
+        case 1: //login
+            returnURL = urlPrefix + "g2_form[cmd]=login&g2_form[uname]=" + argArray.uname + "&g2_form[password]=" + argArray.password;
+            break;
+    }
+    
+    console.log("dfw: returnURL = " + returnURL);
+    
+    return returnURL;
+}
+
+/* don't need this function for now since we are using json format */
+function parseRemoteOutput(res, cmd) {
+    var prefixStatus = "status=";
+    var prefixAuthToken = "auth_token=";
+    var suffixStr = "\n";
+    
+    var returnOutput;
+    
+    switch(cmd) {
+        case 1: //login command output
+            var start = res.indexof(prefixStatus);
+            var end = res.indexof(suffixStr, start);
+            var status = res.slice(start + prefixStatus.length, end);
+            start = res.indexof(prefixAuthToken);
+            end = res.indexof(suffixStr, start);
+            var authToken = res.slice(start + prefixAuthToken.length, end);
+            console.log("dfw: login status = " + status + " authToken = " + authToken);
+            returnOutput = {status:status, authToken:authToken};
+            break;
+    }
+    
+    return returnOutput;
+}
+
+function checkPreAuth() {
+    console.log("dfw: checkPreAuth");
+    
+    if(window.localStorage["mf_username"] !== undefined && window.localStorage["mf_password"] !== undefined) {
+        var loginURL = formRemoteURL({cmd:1, uname:window.localStorage["mf_username"], password:window.localStorage["mf_password"]});
+        
+        $.post(loginURL, function(res) {
+            console.log(JSON.stringify(res));
+            
+            if(res.status == 0) {
+                window.localStorage["mf_authToken"] = res.auth_token;
+                window.localStorage["mf_userId"] = res.userId;
+                
+                $.mobile.changePage("#albumPage");
+            }
+            else {
+                console.log("dfw: checkPreAuth failed for login, goto login page!")
+                
+                $.mobile.changePage("#loginPage");
+            }
+        }, "json");
+    }
+    else {
+        $.mobile.changePage("#loginPage");
+    }
+}
+
+function handleLogin() {
+    console.log('dfw: in handleLogin');
+    
+    var form = $("#loginForm");
+
+    //disable the button so we can't resubmit while we wait
+    $("#loginSubmitButton", form).attr("disabled", "disabled");
+    var u = $("#username", form).val();
+    var p = $("#password", form).val();
+
+    if(u != '' && p!= '') {
+        var loginURL = formRemoteURL({cmd:1, uname:u, password:p});
+        
+        $.post(loginURL, function(res) {
+            console.log(JSON.stringify(res));
+            
+            if(res.status == 0) {
+                window.localStorage["mf_authToken"] = res.auth_token;
+                window.localStorage["mf_userId"] = res.userId;
+                window.localStorage["mf_username"] = u;
+                window.localStorage["mf_password"] = p;
+                $.mobile.changePage("#albumPage");
+            }
+            else {
+                console.log("dfw: login failed wrong user and pass!");
+            }            
+
+            $("#loginSubmitButton").removeAttr("disabled");
+        }, "json");
+    } else {
+        //navigator.notification.alert("You must enter a username and password", function() {});
+        console.log("dfw: login failed empty user or pass!");
+        $("#loginSubmitButton").removeAttr("disabled");
+    }
+    
+    return false;
+}
+
+var app = {
+    // Application Constructor
+    initialize: function() {
+        this.bindEvents();
+    },
+    // Bind Event Listeners
+    //
+    // Bind any events that are required on startup. Common events are:
+    // 'load', 'deviceready', 'offline', and 'online'.
+    bindEvents: function() {
+        document.addEventListener('deviceready', this.onDeviceReady, false);
+    },
+    // deviceready Event Handler
+    //
+    // The scope of 'this' is the event. In order to call the 'receivedEvent'
+    // function, we must explicitly call 'app.receivedEvent(...);'
+    onDeviceReady: function() {
+        console.log('dfw: in onDeviceReady');
+        
+        $("#loginForm").on("submit", handleLogin);
+        
+        //test code begin
+        $("#test_button").click(function() {
+            test_func(1);
+        });
+        // test code end
+        
+        checkPreAuth();
+    },
+};
