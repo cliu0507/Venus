@@ -48,9 +48,7 @@ $(document).ready(function()
             navigator.app.exitApp();
         });
         $("#loginForm").on("submit", handleLogin);
-        
-        //$(".logout").on("click", clearhtmlDom);
-        //When clicking Log out button, clear the img/popup in cache
+
 });
 
 
