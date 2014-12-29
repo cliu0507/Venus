@@ -1,11 +1,12 @@
-WebTestApplication
+WebTestApplication + Backend Server
 ==================
+Backend Infrastructure:  Apache2 + PHP(Kohana) + MySQL (Gallery3)
+WebTestApplication : Jquery Mobile + Apache Cordova Framework
 
-Jquery Mobile + Apache Cordova Framework
-
-For faster development, This is the Web Browser Test Version for Venus/My Fashion.
+For faster development, WebTestApplication is the Web Browser Test Version for Venus/My Fashion.
 It doesn't need emulate mobilement emulator, and just show pages in Chrome/Safari/Firework
 (Some Jquery Mobile functions are enabled because it is not the real mobile environment)
+Real Mobileclient is in the gallery3 directory
 
 Note: Chrome Browser may not Allow Google Chrome to use XMLHttpRequest to load a URL from a local file
 
@@ -28,14 +29,10 @@ Index.html
 
 Disable some part of code in index.js
 
-/*
 $(document).ready(function()
-{
-       console.log(document);
-        //$( "#launcherPage" ).replaceWith("");         
-        $.mobile.changePage("#albumPage");//We can also remove this operation, because albumPage is the first page in DOM
+{       console.log(document);
+        $.mobile.changePage("#albumPage");
         console.log("DeviceReady and Change to albumPage");
-    
         $("#gotologin").on("click" , function()
         {               
           $.mobile.changePage("#loginPage");
@@ -56,4 +53,4 @@ $(document).ready(function()
         //When clicking Log out button, clear the img/popup in cache
 });
 
-*/
+
