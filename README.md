@@ -32,7 +32,6 @@ Disable some part of code in index.js
 $(document).ready(function()
 {       console.log(document);
         $.mobile.changePage("#albumPage");
-        console.log("DeviceReady and Change to albumPage");
         $("#gotologin").on("click" , function()
         {               
           $.mobile.changePage("#loginPage");
