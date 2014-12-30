@@ -125,6 +125,7 @@ function clearhtmlDom()
 {
     
     $(".albumInfo").empty(); 
+    $(".album_photo").remove();
     /*
     $( ".image" ).remove();
     $("#searchpage").empty(); 
@@ -354,10 +355,10 @@ function directloadAlbum(membersArray , i)
 {  
        
         $("#loadalbum").append("<div id= grid"+i+" class= ui-grid-a ui-responsive>");
-         
+         createpage(membersArray[2*i].item_id,membersArray[2*i].title,membersArray[2*i].children);
          var gridid = "#grid"+i;
-        $(gridid).append("<div class= ui-block-a><div class= albumcontainer>\n\
-    <img src="+membersArray[2*i].thumb_url_public+" alt= Loading >\n\
+        $(gridid).append("<div class= ui-block-a><div class= albumcontainer border=2>\n\
+ <a href=#album"+membersArray[2*i].item_id+"><img src="+membersArray[2*i].thumb_url_public+"alt= Loading></a> \n\
 <p>Album Name: <strong>"+ membersArray[2*i].title +"</strong> </p>\n\
 <p>Tag: <strong>"+ membersArray[2*i].tagsTable_name +"</strong> </p>\n\
 <p>Owner:<strong>"+membersArray[2*i].usersTable_name+"</strong> </p>\n\
@@ -369,8 +370,9 @@ function directloadAlbum(membersArray , i)
         //$(gridid).append("<p>Rating:<strong></strong>  </p>");
         //$(gridid).append("</div></div>");
         */
-       $(gridid).append("<div class= ui-block-b><div class= albumcontainer>\n\
-    <img src="+membersArray[2*i+1].thumb_url_public+" alt= Loading >\n\
+       createpage(membersArray[2*i+1].item_id,membersArray[2*i].title,membersArray[2*i+1].children);
+       $(gridid).append("<div class= ui-block-b><div class= albumcontainer border=2>\n\
+ <a href=#album"+membersArray[2*i+1].item_id+"><img src="+membersArray[2*i+1].thumb_url_public+"alt= Loading></a>\n\
 <p>Album Name: <strong>"+ membersArray[2*i+1].title +"</strong> </p>\n\
 <p>Tag: <strong>"+ membersArray[2*i+1].tagsTable_name +"</strong> </p>\n\
 <p>Owner:<strong>"+membersArray[2*i+1].usersTable_name+"</strong>  </p>\n\
@@ -387,6 +389,28 @@ function directloadAlbum(membersArray , i)
         */
          $("#loadalbum").append("</div>");
 }
+
+function createpage(album_id,title,photoarray)
+{
+  if( window.location.hash === '#welcomeback')
+  {  $('body').append("<div id=album"+ album_id +"  class=album_photo  data-role='page'>\n\
+<div data-role= header data-position= fixed><h1><span><strong>AlbumShow</strong></span></h1>\n\
+<a href=#welcomeback data-icon=back class='ui-btn ui-icon-back ui-btn-icon-left' >Back</a></div>\n\
+<div data-role='content'><h2>Album Name:" + title + " <h2><br>\n\
+<ul id=album"+ album_id +"_photos  data-role='listview'><li>Photos are listed below:</li></ul><br></div>\n\
+</div>");
+    var listviewid = "#album"+album_id+"_photos";
+    for(i = 0; i< photoarray.length;i++)
+    {
+        $(listviewid).append("<li><img src= "+photoarray[i].thumb_url_public +" alt = LOADING... ></li>");
+    }
+    
+    //window.location.hash = 'album'+album_id;
+    //$.mobile.initializePage();
+}
+   
+}
+
 
 function directloadItem(imgobject , i )
 {

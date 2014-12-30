@@ -28,7 +28,9 @@
         <!-- add jquery mobile CDN (CDN is better since it's fast, cached once downloaded, and most of the computers already have it downloaded.) -->
         <link rel="stylesheet" href="http://code.jquery.com/mobile/1.4.2/jquery.mobile-1.4.2.min.css">
         <script src="http://code.jquery.com/jquery-1.10.2.min.js"></script>
-        <script src="http://code.jquery.com/mobile/1.4.2/jquery.mobile-1.4.2.min.js"></script>
+       <script src="http://code.jquery.com/mobile/1.4.2/jquery.mobile-1.4.2.min.js"></script>
+        <script type="text/javascript" src="js/index.js"></script>
+         
         <title>My Fashion</title>
 
     </head>
@@ -41,7 +43,6 @@
                 <h1>Please Wait for DeviceReady!</h1>  
             </div>
         </div>
-        
         <div id="albumPage" data-role="page">
             
             
@@ -66,6 +67,10 @@
                 <h1><strong>Welcome to MyFashion</strong></h1>
             </div>
         </div>
+        
+        
+        
+        
         
         <div id="welcomeback" data-role="page" >
             <div data-role="panel" id = "myPanel" data-theme="b">
@@ -99,7 +104,7 @@
                         <li><a href="#">All<span class="ui-li-count">5</span></a></li>
                         <li><a href="#">Accessories<span class="ui-li-count">1</span></a></li>
                         <li><a href="#">Celebrity<span class="ui-li-count">0</span></a></li>
-                        <li><a href="#">Casual Dress<span class="ui-li-count">1</span></a></li>
+                         <li><a href="#">Casual Dress<span class="ui-li-count">1</span></a></li>
                         <li><a href="#">Office Lady<span class="ui-li-count">0</span></a></li>
                         <li><a href="#">Sexy Underware<span class="ui-li-count">0</span></a></li>
                         <li><a href="#">Sportsware<span class="ui-li-count">1</span></a></li>
@@ -154,7 +159,8 @@
                     class="ui-btn ui-btn-inline ui-corner-all ui-icon-search ui-btn-icon-left">Search By Names</a></p>
               </div>
             </div>
-              
+             
+
              <div data-role="footer" class="nav-glyphish-example ui-bar-a ui-footer" role="contentinfo" data-position="fixed">
 		<div data-role="navbar" class="nav-glyphish-example ui-navbar" data-grid="b" role="navigation">
 		<ul class="ui-grid-a ui-grid-b">
@@ -196,9 +202,9 @@
         <div id="searchpage" data-role="page" >
 
             <div data-role="header">
-                <h1>Search Page</h1>
+                <h1><strong>Search Page</strong></h1>
                 <a href="#welcomeback" class="ui-btn ui-icon-back ui-btn-icon-left">Back</a>
-                <a  href="#loginPage" class="logout ui-btn ui-mini ui-icon-back ui-btn-icon-left">Log Out</a>
+                <!--<a  href="#loginPage" class="logout ui-btn ui-mini ui-icon-back ui-btn-icon-left">Log Out</a>-->
                
             </div>
 
@@ -219,7 +225,7 @@
         </div>
         
          <script type="text/javascript" src="cordova.js"></script>  
-        <script type="text/javascript" src="js/index.js"></script>
+        
  
         
         

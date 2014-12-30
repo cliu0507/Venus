@@ -315,7 +315,8 @@ class item_rest_Core {
          //$Iterator = new ORM_Iterator($orm, $mysqliResult);
     
          $result = array(
-             "entity" => $item->as_restful_array()
+             "entity" => $item->as_restful_array(),
+             //"members" => array()
          );
          $result["members"] = array();
          foreach ($mysqliResult as $child)
@@ -326,7 +327,45 @@ class item_rest_Core {
              $class  = get_class($orm);
              $row = new $class($child);
              $result["members"][] = $row->as_restful_array();
-         }     
+             //$result["members"]["children"] = array();
+         }
+         
+       foreach ($result as $key1 => $member)
+       {
+          if ($key1 === "members")
+          {
+              foreach($member as $key2 => $album)
+              {
+                  
+                   
+                  $orm = ORM::factory("item")->viewable();
+                  $parentid = $album["item_id"];
+                  $orm->where("parent_id", "=", $parentid);
+                  $result[$key1][$key2]["children"] =array();
+                 foreach ($orm->find_all() as $child) 
+                 {
+                   $result[$key1][$key2]["children"][] = $child ->as_restful_array();
+                 }
+                   //$result[$key1][$key2]["children"] = "I am the test sentence";
+                   
+                  
+              }
+          }
+       }
+      /*   
+         foreach ($result["members"] as $album)
+         {
+             $orm = ORM::factory("item")->viewable();
+             $orm->where("parent.id", "=", $album[item_id]);
+             //$album["children"] = array();
+             foreach ($orm->find_all() as $child) 
+            {
+              $album["children"][] = $child ->as_restful_array();
+            }
+             log::success("cliu", "this way 1");
+         }
+         */
+         
          return $result;
   }
 }
