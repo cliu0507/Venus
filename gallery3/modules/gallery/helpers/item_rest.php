@@ -51,7 +51,7 @@ class item_rest_Core {
     if($item->id == '1')
     {
       
-       $result = call_user_func(array("item_rest","AlbumByDb"),$item);   
+       $result = call_user_func(array("item_rest","AlbumByModel"),$item);   
     }
     
     if (isset($p->random)) {
@@ -250,28 +250,85 @@ class item_rest_Core {
 
       $orm = ORM::factory("item")->viewable();
       //Because we use find_all function(inside has select and from), so we don't need to set "select" "from"
+      $columnlist = array(
+        "itemsTable_item_id" => "items.id",
+        "tagsTable_tag_id" => "tags.id",
+        "itemstagsTable_id" => "items_tags.id",
+        "tagsTable_name" => "tags.name",
+        "usersTable_name" => "users.name",
+        );
 
-      //$orm->where("items.id", "=", "48");
+      
+      $orm->select(array("*"));
+      $orm->select($columnlist);     
+      //$orm->select("itemsTable_item_id","items.id");
+      
+      $orm->from("items");
+       //$orm->where("parent_id", "=", $item->id);
+
       $orm->join("items_tags","items_tags.item_id" , "items.id");
       $orm->join("tags", "items_tags.tag_id", "tags.id");
-      
+      $orm->join("users" , "items.owner_id" , "users.id");
+ 
+ 
       $result = array(
+             "entity" => $item->as_restful_array(),
+             //"members" => array()
+         );
+         //$result["members"] = array();      
+       $orm->direct_db = Database::instance($orm->direct_db);
+       $executeresult = $orm->db_builder->execute($orm->direct_db);
+       
+        $temp = new ORM_Iterator($orm, $executeresult);
+      foreach ($temp as $child)
+         {   
+             $result["members"][] = $child->as_restful_array();       
+             /*$result["members"][] = $child;
+              * If we don't need RestArray as return format, we can just use the code above
+             */
+         }
+            /*
+             Note:
+             0. $orm->find_all() will return an instance of ORM_Iterator, Please refer to ORM::load_result() function,      
+             1. find() or find_all() method will use ORM::load_result() method. 
+             2. find_all() will return ORM_Iterator object(it implemented iterator interface, when using foreach{} to iterate
+             it, it will build and return n item_Model objects, with every object->object[] store one row results. Please refer to orm_iterator::current
+             and item_Model::construct($row).
+             3. find()--- just one row result limit,  will return an item_Model object, one row record will store in item_Model->object[] (it is an array)
+             */ 
       
-      "entity" => $item->as_restful_array()
-      );
-      
-      $result["members"] = array();
-       foreach ($orm->find_all() as $child) 
+       foreach ($result as $key1 => $member)
        {
-          $result["members"][] = $child ->as_restful_array();
-      }
-      
-     return $result; 
+          if ($key1 === "members")
+          {
+              foreach($member as $key2 => $album)
+              {
+                  $orm2 = ORM::factory("item");
+                  $parentid = $album["itemsTable_item_id"];
+                  $orm2->where("parent_id", "=", $parentid);
+                  $result[$key1][$key2]["children"] =array();
+                 foreach ($orm2->find_all() as $child) 
+                 {
+                   $result[$key1][$key2]["children"][]= $child ->as_restful_array();
+                 }
+                   //$result[$key1][$key2]["children"] = "I am the test sentence";
+                   
+                  
+              }
+          }
+       }
+       
+       //$result["rating"] =array();   
+       $newresult = call_user_func(array("item_rest","FindRating"),$result);   
+       //$result["rating"] = $ratingArray;
+        
+     return $newresult; 
   }
   
   static function AlbumByDb($item)
   {
-  	 $orm = ORM::factory("item")->viewable();
+  	 //$orm = ORM::factory("item")->viewable();
+      $orm = ORM::factory("item");
          //Directly write sql query
          //$sql = "SELECT  *  FROM  mf_items ";
  
@@ -368,5 +425,77 @@ class item_rest_Core {
          
          return $result;
   }
-}
 
+
+  static function FindRating($result)
+  {
+      log::success("cliu" , "path1");
+      $ratingArray = array();
+      $orm3 = ORM::factory("item")->viewable();
+      $columnlist = array(
+        "itemsTable_item_id" => "items.id",
+        "tagsTable_tag_id" => "ratings.id",
+        "rating" => "ratings.rating",
+        );
+      $orm3->select($columnlist); 
+      $orm3->from("items");
+      $orm3->join("ratings","ratings.item_id" , "items.id");
+      $orm3->direct_db = Database::instance($orm3->direct_db);
+       $executeresult = $orm3->db_builder->execute($orm3->direct_db);   
+        $temp = new ORM_Iterator($orm3, $executeresult);
+      foreach($temp as $child)
+      {    
+          $ratingArray[] = $child->object;
+      }
+      foreach($ratingArray as $index=>$child)
+      {
+          foreach($child as $key => $value)
+          {
+              if($value === null)
+              {
+              unset($ratingArray[$index][$key]);
+              }
+          }
+      }
+      log::success("cliu" , "path2");
+      foreach ($result as $key1 => $member)
+      {
+        if($key1==="members")
+        {          
+          foreach($member as $key2 => $album)
+          {
+                  $result[$key1][$key2]["thumbup"] = 0;
+                  $result[$key1][$key2]["thumbdown"] = 0;
+            
+          }
+        }
+      }
+      log::success("cliu" , "path3");
+      foreach ($result as $key1 => $member)
+      {
+        if($key1==="members")
+        {          
+          foreach($member as $key2 => $album)
+          {            
+              log::success("cliu" , "path4");
+              foreach($ratingArray as $record => $rating)
+              {
+                  if($rating["itemsTable_item_id"] === $album["itemsTable_item_id"])
+                  {
+                      if($rating["rating"] === '100' )
+                      {
+                          $result[$key1][$key2]["thumbup"]++;
+                      }
+                      else
+                      {
+                          $result[$key1][$key2]["thumbdown"]++;
+                      }
+                      unset($ratingArray[$record]);
+                  }
+              }
+          }
+        }
+      }
+      return $result;
+  }
+}

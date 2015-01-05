@@ -66,9 +66,10 @@ class ORM_Core {
   
   //Create a new variable for direct db manipulations	
 	public $direct_db = 'default';
-	
-	protected $db_applied = array();
-	protected $db_builder;
+	//Former is protected
+	public $db_applied = array();
+	//Former is protected
+	public $db_builder;
 
 	// With calls already applied
 	protected $with_applied = array();
@@ -1480,7 +1481,7 @@ class ORM_Core {
 			  Because we use join clause so we need to select all columns rather than this->table_name.'.*'
 			 The former code is $this->db_builder->select($this->table_name.'.*');
 			*/
-			$this->db_builder->select();
+			$this->db_builder->select($this->table_name.'.*');
 			/*Because we use join clause so we need to select all columns rather than this->table.'.*'
 			*/
 		}

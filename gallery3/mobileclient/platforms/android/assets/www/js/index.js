@@ -179,7 +179,7 @@ function handleLogin() {
     {
         console.log(encodeURIComponent({ "user" : u, "password" : p}));
  
-          alert('Sucessful Login!');         
+          //alert('Sucessful Login!');         
           window.localStorage["mf_authToken"] = res;
           window.localStorage["mf_username"] = u;
           window.localStorage["mf_password"] = p;
@@ -357,12 +357,13 @@ function directloadAlbum(membersArray , i)
         $("#loadalbum").append("<div id= grid"+i+" class= ui-grid-a ui-responsive>");
          createpage(membersArray[2*i].item_id,membersArray[2*i].title,membersArray[2*i].children);
          var gridid = "#grid"+i;
+         var thumbuprate1 = 100 * membersArray[2*i].thumbup/parseFloat(membersArray[2*i].thumbup+membersArray[2*i].thumbdown);       
         $(gridid).append("<div class= ui-block-a><div class= albumcontainer border=2>\n\
  <a href=#album"+membersArray[2*i].item_id+"><img src="+membersArray[2*i].thumb_url_public+"alt= Loading></a> \n\
 <p>Album Name: <strong>"+ membersArray[2*i].title +"</strong> </p>\n\
 <p>Tag: <strong>"+ membersArray[2*i].tagsTable_name +"</strong> </p>\n\
 <p>Owner:<strong>"+membersArray[2*i].usersTable_name+"</strong> </p>\n\
-<p>Rating:<strong></strong>  </p></div>");
+<p><strong>  "+thumbuprate1+"% Thumbs Up!</strong>  </p></div>");
         /*$(gridid).append("<img src="+membersArray[2*i].thumb_url_public+" alt= Loading >");
         //$(gridid).append("<p>Album Name: <strong>"+ membersArray[2*i].title +"</strong> </p>");
         //$(gridid).append("<p>Tag: <strong>"+ membersArray[2*i].tagsTable_name +"</strong> </p>");
@@ -371,12 +372,13 @@ function directloadAlbum(membersArray , i)
         //$(gridid).append("</div></div>");
         */
        createpage(membersArray[2*i+1].item_id,membersArray[2*i].title,membersArray[2*i+1].children);
+       var thumbuprate2 = 100 * membersArray[2*i+1].thumbup/parseFloat(membersArray[2*i+1].thumbup+membersArray[2*i+1].thumbdown);
        $(gridid).append("<div class= ui-block-b><div class= albumcontainer border=2>\n\
  <a href=#album"+membersArray[2*i+1].item_id+"><img src="+membersArray[2*i+1].thumb_url_public+"alt= Loading></a>\n\
 <p>Album Name: <strong>"+ membersArray[2*i+1].title +"</strong> </p>\n\
 <p>Tag: <strong>"+ membersArray[2*i+1].tagsTable_name +"</strong> </p>\n\
 <p>Owner:<strong>"+membersArray[2*i+1].usersTable_name+"</strong>  </p>\n\
-<p>Rating:<strong></strong>  </p></div>");
+<p><strong>  "+thumbuprate2+"% Thumbs Up!</strong>  </p></div>");
        
         /*
         $(gridid).append("<div class= ui-block-b><div class= albumcontainer>");
