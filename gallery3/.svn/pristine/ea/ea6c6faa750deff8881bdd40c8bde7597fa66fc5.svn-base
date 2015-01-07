@@ -1,0 +1,32 @@
+LINKFLAGS=-lMagick++ -lMagickWand -lMagickCore -llcms -ltiff -lfreetype -ljpeg -llqr-1 -lglib-2.0 -lfontconfig -lXext -lSM -lICE -lX11 -lXt -lbz2 -lz -lm -lgomp -lpthread -lltdl /usr/local/lib/libopencv_calib3d.so /usr/local/lib/libopencv_contrib.so /usr/local/lib/libopencv_core.so /usr/local/lib/libopencv_features2d.so /usr/local/lib/libopencv_flann.so /usr/local/lib/libopencv_gpu.so /usr/local/lib/libopencv_highgui.so /usr/local/lib/libopencv_imgproc.so /usr/local/lib/libopencv_legacy.so /usr/local/lib/libopencv_ml.so /usr/local/lib/libopencv_nonfree.so /usr/local/lib/libopencv_objdetect.so /usr/local/lib/libopencv_ocl.so /usr/local/lib/libopencv_photo.so /usr/local/lib/libopencv_stitching.so /usr/local/lib/libopencv_superres.so /usr/local/lib/libopencv_ts.a /usr/local/lib/libopencv_video.so /usr/local/lib/libopencv_videostab.so -ldl
+CFLAGS=-DImMagick -DLinuxBuild -g -O2 -fstack-protector --param=ssp-buffer-size=4 -Wformat -Wformat-security -pthread -I/usr/include/ImageMagick
+
+all : imgMatch.o imgProcessLayer.o imgMemLayer.o imgTransLayer.o imgFaceDetection.o
+	g++ -o imgMatch.out output/imgMatch.o output/imgProcessLayer.o output/imgMemLayer.o output/imgTransLayer.o output/imgFaceDetection.o $(LINKFLAGS)
+
+business : imgMatchBiz.o imgProcessLayerBiz.o imgMemLayerBiz.o imgTransLayerBiz.o imgFaceDetectionBiz.o
+	g++ -o imgMatchBusiness.out output/imgMatchBiz.o output/imgProcessLayerBiz.o output/imgMemLayerBiz.o output/imgTransLayerBiz.o output/imgFaceDetectionBiz.o $(LINKFLAGS)
+
+imgMatch.o :
+	gcc -std=c++0x -pthread -fno-strict-aliasing -DNDEBUG -g -fwrapv -O2 -Wall -fPIC -c src/imgMatch.cpp -o output/imgMatch.o $(CFLAGS)
+imgProcessLayer.o :
+	gcc -pthread -fno-strict-aliasing -DNDEBUG -g -fwrapv -O2 -Wall -fPIC -c src/imgProcessLayer.cpp -o output/imgProcessLayer.o $(CFLAGS)
+imgMemLayer.o :
+	gcc -pthread -fno-strict-aliasing -DNDEBUG -g -fwrapv -O2 -Wall -fPIC -c src/imgMemLayer.cpp -o output/imgMemLayer.o $(CFLAGS)
+imgTransLayer.o :
+	gcc -std=c++0x -pthread -fno-strict-aliasing -DNDEBUG -g -fwrapv -O2 -Wall -fPIC -c src/imgTransLayer.cpp -o output/imgTransLayer.o $(CFLAGS)
+
+imgMatchBiz.o :
+	gcc -std=c++0x -pthread -fno-strict-aliasing -DNDEBUG -DIMGMATCH_BUSINESS -g -fwrapv -O2 -Wall -fPIC -c src/imgMatch.cpp -o output/imgMatchBiz.o $(CFLAGS)
+imgProcessLayerBiz.o :
+	gcc -pthread -fno-strict-aliasing -DNDEBUG -DIMGMATCH_BUSINESS -g -fwrapv -O2 -Wall -fPIC -c src/imgProcessLayer.cpp -o output/imgProcessLayerBiz.o $(CFLAGS)
+imgMemLayerBiz.o :
+	gcc -pthread -fno-strict-aliasing -DNDEBUG -DIMGMATCH_BUSINESS -g -fwrapv -O2 -Wall -fPIC -c src/imgMemLayer.cpp -o output/imgMemLayerBiz.o $(CFLAGS)
+imgTransLayerBiz.o :
+	gcc -std=c++0x -pthread -fno-strict-aliasing -DNDEBUG -DIMGMATCH_BUSINESS -g -fwrapv -O2 -Wall -fPIC -c src/imgTransLayer.cpp -o output/imgTransLayerBiz.o $(CFLAGS)
+
+imgFaceDetection.o :
+	gcc -Wall -c -I/usr/local/include/opencv -I/usr/local/include src/imgFaceDetection.cpp  -o output/imgFaceDetection.o /usr/local/lib/libopencv_calib3d.so /usr/local/lib/libopencv_contrib.so /usr/local/lib/libopencv_core.so /usr/local/lib/libopencv_features2d.so /usr/local/lib/libopencv_flann.so /usr/local/lib/libopencv_gpu.so /usr/local/lib/libopencv_highgui.so /usr/local/lib/libopencv_imgproc.so /usr/local/lib/libopencv_legacy.so /usr/local/lib/libopencv_ml.so /usr/local/lib/libopencv_nonfree.so /usr/local/lib/libopencv_objdetect.so /usr/local/lib/libopencv_ocl.so /usr/local/lib/libopencv_photo.so /usr/local/lib/libopencv_stitching.so /usr/local/lib/libopencv_superres.so /usr/local/lib/libopencv_ts.a /usr/local/lib/libopencv_video.so /usr/local/lib/libopencv_videostab.so -lrt -lpthread -lm -ldl 
+
+clean :
+	rm -f imgMatch.out imgMatchBusiness.out output/*.o
