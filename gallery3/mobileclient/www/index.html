@@ -121,6 +121,11 @@
                 <a href="#" class="ui-btn ui-btn-inline ui-btn-b ui-mini">Lastest</a>
                 <a href="#" class="ui-btn ui-btn-inline ui-btn-b ui-mini">Most Viewed</a>
                 <a href="#" class="ui-btn ui-btn-inline ui-btn-b ui-mini">Hottest</a>
+              <form id="frmImport" name="frmImport" method="post" enctype="multipart/form-data" >
+                <input id="fileImportData" name="importData" type="file" />
+                 <br/>
+             <button id="btnImport" type="submit" >Upload</button>
+            </form>
                 &nbsp;&nbsp;&nbsp;&nbsp;
                 <a href="#popupfilter" data-rel="popup" class="ui-btn ui-btn-inline ui-btn-b 
                    ui-mini ui-icon-search ui-btn-icon-left"><i>Album Filter</i></a>           
@@ -230,7 +235,7 @@
         
         
         <script type="text/javascript">           
-           app.initialize();      
+           //app.initialize();      
         </script>
     </body>
       

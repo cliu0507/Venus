@@ -16,14 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/*
+
 $(document).ready(function()
 {
        console.log(document);
+        
+        
         //$( "#launcherPage" ).replaceWith(""); // We need to remove "#launcherpage" and let albumPage to be the first data- role = "page"            
         $.mobile.changePage("#albumPage");//We can also remove this operation, because albumPage is the first page in DOM
         console.log("DeviceReady and Change to albumPage");
-    
+       $('#frmImport').submit(function(e)
+       {
+        e.preventDefault();
+        //CHECK ERRORS ON USER SIDE, IF TRUE, END OPERATIONS.
+        
+        import_db();
+        return false;
+       });
         $("#gotologin").on("click" , function()
         {               
           $.mobile.changePage("#loginPage");
@@ -39,10 +48,90 @@ $(document).ready(function()
             navigator.app.exitApp();
         });
         $("#loginForm").on("submit", handleLogin);
-        
+
+
+   
         //$(".logout").on("click", clearhtmlDom);
         //When clicking Log out button, clear the img/popup in cache
 });
+
+function import_db()
+ {
+        var formData = new FormData();
+        jQuery.each($('#fileImportData')[0].files, function(i, file) {
+            formData.append('uploadFile-'+i, file);
+        });
+        formData.append('action', 'ajax_handler_import');
+        formData.append('_ajax_nonce', importNonce);
+
+        jQuery.ajax({
+            url: ajaxurl,
+            type: 'POST',
+            cache: false,
+            contentType: false,
+            processData: false,
+
+            //MODIFIED - From ajaxData to formData
+            data: formData,
+
+            beforeSend: function(jqXHR, settings){
+                console.log("Haven't entered server side yet.");
+            },
+            dataFilter: function(data, type){
+                //May need/want to create a function to parse the data. Which includes
+                // PHP Errors that would normally break the AJAX function with a JS 
+                // Error with no sign of the PHP Error message. Normally want to 
+                // try/catch php errors.
+                console.log("JSON string echoed back from server side.");
+            },
+            success: function(data, textStatus, jqXHR){
+                console.log("Back from server-side!");
+                //Checking errors that may have been caught on the server side that
+                // normally wouldn't display in the error Ajax function.
+                if (data.msg != 'success')
+                {
+                    alert(data.error);
+                }
+            },
+            error: function(jqXHR, textStatus, errorThrown){
+                console.log("A JS error has occurred.");
+            },
+            complete: function(jqXHR, textStatus){
+                console.log("Ajax is finished.");
+            }
+        });  
+    }
+
+/*
+function newAlbum()
+{
+    //event.preventDefault();
+    var formData = new FormData();
+    formData.append("upload", $('#fileImportData').files[0]);
+    
+   $.ajax({
+        type:"post",    
+        url: "http://192.168.56.101/gallery3/index.php/rest",
+        crossDomain: true,
+        dataType: 'Json',
+        timeout:3000 ,
+        //Set the longest wait time
+        data:   formData, 
+        contentType: false,
+        cache: false,
+        processData:false,,
+        //contentType: "application/json; charset=utf-8",
+        success: function()
+        { 
+            consolo.log("Uploaded Successfully!");
+     
+
+        },
+         error: function(){
+           consolo.log("Uploaded Error!");
+        }
+      }); 
+}
 */
 
 function formRemoteURL(argArray) {
