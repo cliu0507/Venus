@@ -20,7 +20,7 @@ static const int num_threads = 10;
 
 using namespace std;
 
-void sendCommand(struct addrinfo *servinfo, const char *command, bool isQuery, int expected_id, int expected_percentage)
+void sendCommand(struct addrinfo *servinfo, const char *command, bool isQuery, int expected_id = 0, int expected_percentage = 90)
 {
     int sockfd;
     struct addrinfo *p;
@@ -55,6 +55,7 @@ void sendCommand(struct addrinfo *servinfo, const char *command, bool isQuery, i
 	if(isQuery)
 	{
 		const int BUFFER_SIZE = 10000;
+		const int SMALL_BUFFER_SIZE = 1000;
 		char buf[BUFFER_SIZE];
 		int numbytes;
 
@@ -64,8 +65,33 @@ void sendCommand(struct addrinfo *servinfo, const char *command, bool isQuery, i
 		}
 
 		buf[numbytes] = '\0';
-
 		printf("Query result = %s\n", buf);
+		
+		char *saveptr1, *saveptr2;
+		
+		char* token = strtok_r(buf, ";", &saveptr1);
+		bool passed = false;
+		while (token != NULL) {
+			//printf ("%s\n", token);
+            string idpercentage(token);
+			int npos = idpercentage.find(':');
+			string id = idpercentage.substr(0, npos);
+			string percentage = idpercentage.substr(npos + 1);
+			
+			//std::cout << id << " : " << percentage << std::endl;
+			
+			if (atoi(id.c_str()) == expected_id && atoi(percentage.c_str()) > expected_percentage) {
+				//printf("Pass: %s, %s - %s\n", command, id.c_str(), percentage.c_str());
+				passed = true;
+				break;
+			}
+			
+			token = strtok_r(NULL, ";", &saveptr1);
+		}
+		
+		if (!passed) {
+			//printf("Failed: %s\n", command);
+		}
 	}
 
     close(sockfd);
@@ -157,30 +183,30 @@ int main(int argc, char *argv[])
 #endif
     //sendCommand(servinfo, command_queryId, true);
     //sendCommand(servinfo, command_queryPath, true);
-	std::thread queryIdThread1 = std::thread(sendCommand, servinfo, command_queryId1, true);
-	std::thread queryIdThread2 = std::thread(sendCommand, servinfo, command_queryId2, true);
-	std::thread queryIdThread3 = std::thread(sendCommand, servinfo, command_queryId3, true);
-	std::thread queryIdThread4 = std::thread(sendCommand, servinfo, command_queryId4, true);
-	std::thread queryIdThread5 = std::thread(sendCommand, servinfo, command_queryId5, true);
-	std::thread queryIdThread6 = std::thread(sendCommand, servinfo, command_queryId6, true);
-	std::thread queryIdThread7 = std::thread(sendCommand, servinfo, command_queryId7, true);
-	std::thread queryIdThread8 = std::thread(sendCommand, servinfo, command_queryId8, true);
-	std::thread queryIdThread9 = std::thread(sendCommand, servinfo, command_queryId9, true);
-	std::thread queryIdThread10 = std::thread(sendCommand, servinfo, command_queryId10, true);
-	std::thread queryPathThread1 = std::thread(sendCommand, servinfo, command_queryPath1, true);
-	std::thread queryPathThread2 = std::thread(sendCommand, servinfo, command_queryPath2, true);
-	std::thread queryPathThread3 = std::thread(sendCommand, servinfo, command_queryPath3, true);
-	std::thread queryPathThread4 = std::thread(sendCommand, servinfo, command_queryPath4, true);
-	std::thread queryPathThread5 = std::thread(sendCommand, servinfo, command_queryPath5, true);
-	std::thread queryPathThread6 = std::thread(sendCommand, servinfo, command_queryPath6, true);
-	std::thread queryPathThread7 = std::thread(sendCommand, servinfo, command_queryPath7, true);
-	std::thread queryPathThread8 = std::thread(sendCommand, servinfo, command_queryPath8, true);
-	std::thread queryPathThread9 = std::thread(sendCommand, servinfo, command_queryPath9, true);
-	std::thread queryPathThread10 = std::thread(sendCommand, servinfo, command_queryPath10, true);	
+	std::thread queryIdThread1 = std::thread(sendCommand, servinfo, command_queryId1, true, 190, 90);
+	std::thread queryIdThread2 = std::thread(sendCommand, servinfo, command_queryId2, true, 191, 90);
+	std::thread queryIdThread3 = std::thread(sendCommand, servinfo, command_queryId3, true, 192, 90);
+	std::thread queryIdThread4 = std::thread(sendCommand, servinfo, command_queryId4, true, 193, 90);
+	std::thread queryIdThread5 = std::thread(sendCommand, servinfo, command_queryId5, true, 194, 90);
+	std::thread queryIdThread6 = std::thread(sendCommand, servinfo, command_queryId6, true, 195, 90);
+	std::thread queryIdThread7 = std::thread(sendCommand, servinfo, command_queryId7, true, 196, 90);
+	std::thread queryIdThread8 = std::thread(sendCommand, servinfo, command_queryId8, true, 197, 90);
+	std::thread queryIdThread9 = std::thread(sendCommand, servinfo, command_queryId9, true, 198, 90);
+	std::thread queryIdThread10 = std::thread(sendCommand, servinfo, command_queryId10, true, 199, 90);
+	std::thread queryPathThread1 = std::thread(sendCommand, servinfo, command_queryPath1, true, 180, 90);
+	std::thread queryPathThread2 = std::thread(sendCommand, servinfo, command_queryPath2, true, 181, 90);
+	std::thread queryPathThread3 = std::thread(sendCommand, servinfo, command_queryPath3, true, 182, 90);
+	std::thread queryPathThread4 = std::thread(sendCommand, servinfo, command_queryPath4, true, 183, 90);
+	std::thread queryPathThread5 = std::thread(sendCommand, servinfo, command_queryPath5, true, 184, 90);
+	std::thread queryPathThread6 = std::thread(sendCommand, servinfo, command_queryPath6, true, 185, 90);
+	std::thread queryPathThread7 = std::thread(sendCommand, servinfo, command_queryPath7, true, 186, 90);
+	std::thread queryPathThread8 = std::thread(sendCommand, servinfo, command_queryPath8, true, 187, 90);
+	std::thread queryPathThread9 = std::thread(sendCommand, servinfo, command_queryPath9, true, 188, 90);
+	std::thread queryPathThread10 = std::thread(sendCommand, servinfo, command_queryPath10, true, 189, 90);	
 	std::thread addThreads[num_threads];
 	for (int i = 0; i < 10; i++) {
 		std::cout << command_addImages[i].c_str() << std::endl;
-		addThreads[i] = std::thread(sendCommand, servinfo, command_addImages[i].c_str(), false);
+		addThreads[i] = std::thread(sendCommand, servinfo, command_addImages[i].c_str(), false, 0, 0);
 	}
 	
 	for (int i = 0; i < 10; i++) {
@@ -190,7 +216,7 @@ int main(int argc, char *argv[])
 	std::thread delThreads[5];
 	for (int i = 0; i < 5; i++) {
 	     std::cout << command_removeImages[i].c_str() << std::endl;
-		 delThreads[i] = std::thread(sendCommand, servinfo, command_removeImages[i].c_str(), false);
+		 delThreads[i] = std::thread(sendCommand, servinfo, command_removeImages[i].c_str(), false, 0, 0);
 		 }
 	for (int i = 5; i < 5; i++) {
 		 delThreads[i].join();

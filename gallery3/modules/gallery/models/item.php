@@ -168,6 +168,7 @@ class Item_Model_Core extends ORM_MPTT {
    */
   public function file_path() {
     return VARPATH . "albums/" . urldecode($this->relative_path());
+    // urldecode : Decodes URL-encoded string
   }
 
   /**

@@ -74,6 +74,7 @@ class url extends url_Core {
    */
   static function current($qs=false, $suffix=false) {
     return htmlspecialchars(parent::current($qs, $suffix));
+    //htmlspecialchars  Convert special characters to HTML entities
   }
 
   /**

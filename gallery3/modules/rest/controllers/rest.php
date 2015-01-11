@@ -75,6 +75,7 @@ class Rest_Controller extends Controller {
         if (isset($_FILES["file"])) {
           $request->file = upload::save("file");
           //upload::save("file") will return new file path, please refer to helpers/upload.php
+          //in HTML, name of <input> should be "file" 
           system::delete_later($request->file);
         }
         break;
@@ -97,11 +98,11 @@ class Rest_Controller extends Controller {
        //log::success("cliu", $request->method);
       if (empty($request->access_key) && !empty($request->params->access_key)) {        
         $request->access_key = $request->params->access_key;
-        //log::success("cliu", "Check whether path 4 ");
+        
       }
 
       $request->url = url::abs_current(true);
-      //log::success("cliu", "1 url= ". $request->url);
+      //Build $request->url, important
       if ($suffix = Kohana::config('core.url_suffix')) {
         $request->url = substr($request->url, 0, strlen($request->url) - strlen($suffix));
         //log::success("cliu", "Check whether path 5 ");

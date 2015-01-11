@@ -161,6 +161,7 @@ class rest_Core {
 
     $class = "{$resource_type}_rest";
     //$class = item_rest
+    //$class = data_rest
     if (!class_exists($class) || !method_exists($class, "url")) {
       throw new Rest_Exception("Bad Request", 400);
     }

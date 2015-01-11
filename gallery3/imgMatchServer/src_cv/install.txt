@@ -1,0 +1,116 @@
+/******************************************************************************
+Instructions to install opencv-2.4.10. The instructions are based on some 
+online instructions and modified to provide more convenience for imgMatch usage. 
+
+This file lists all steps to install opencv-2.4.10 in linux. Please contact
+author if you see any problem.
+
+---------------------------------------
+begin            : Jan 10 2015
+email            : taohe76@gmail.com
+
+Copyright (C) 2014-2015 Venars Inc.
+ ******************************************************************************/
+
+Please sync to the top of tree imgMatchServer in SVN.
+
+1. Remove any installed versions of ffmpeg and x264.
+	sudo apt-get remove ffmpeg x264 libx264-dev
+	
+2. Get all the dependencies for x264 and ffmpeg.
+	sudo apt-get update
+	sudo apt-get install build-essential checkinstall git cmake libfaac-dev libjack-jackd2-dev libmp3lame-dev libopencore-amrnb-dev libopencore-amrwb-dev libsdl1.2-dev libtheora-dev libva-dev libvdpau-dev libvorbis-dev libx11-dev libxfixes-dev libxvidcore-dev texi2html yasm zlib1g-dev
+
+3. Download and install gstreamer.
+	sudo apt-get install libgstreamer0.10-0 libgstreamer0.10-dev gstreamer0.10-tools gstreamer0.10-plugins-base libgstreamer-plugins-base0.10-dev gstreamer0.10-plugins-good gstreamer0.10-plugins-ugly gstreamer0.10-plugins-bad gstreamer0.10-ffmpeg
+
+4. Download and install gtk.
+	sudo apt-get install libgtk2.0-0 libgtk2.0-dev
+
+5. Download and install libjpeg.
+	sudo apt-get install libjpeg8 libjpeg8-dev
+
+6. Go to the directory to hold source code.
+	cd /var/www/gallery3/imgMatchServer/src_cv
+
+7. Install x264.
+   a. go to the source code directory.
+	cd /var/www/gallery3/imgMatchServer/src_cv
+	tar xvf x264-snapshot-20120528-2245-stable.tar.bz2
+	cd x264-snapshot-20120528-2245-stable
+
+   b. Configure and build the x264 libraries.
+	./configure --enable-static
+	make
+	sudo make install
+
+	IMPORTANT: If you are running a 64-bit version of Ubuntu, you must configure x264 as shown in the following command:
+
+	./configure --enable-shared --enable-pic
+
+8. Install ffmpeg.
+   a. go to the source code directory
+	cd /var/www/gallery3/imgMatchServer/src_cv
+	tar xvf ffmpeg-0.11.1.tar.bz2
+	cd ffmpeg-0.11.1
+
+   b. Configure and build ffmpeg.
+	./configure --enable-gpl --enable-libfaac --enable-libmp3lame --enable-libopencore-amrnb --enable-libopencore-amrwb --enable-libtheora --enable-libvorbis --enable-libx264 --enable-libxvid --enable-nonfree --enable-postproc --enable-version3 --enable-x11grab
+	make
+	sudo make install
+
+	IMPORTANT: Just like with x264 in the previous step, you must configure ffmpeg with the -shared and -pic options if you are running a 64-bit version of Ubuntu or some other architectures, such as ARM.
+
+	./configure --enable-gpl --enable-libfaac --enable-libmp3lame --enable-libopencore-amrnb --enable-libopencore-amrwb --enable-libtheora --enable-libvorbis --enable-libx264 --enable-libxvid --enable-nonfree --enable-postproc --enable-version3 --enable-x11grab --enable-shared --enable-pic
+
+9. Install a recent version of v4l (video for linux) from http://www.linuxtv.org/downloads/v4l-utils/. For this guide I used version 0.8.8.
+
+	cd /var/www/gallery3/imgMatchServer/src_cv
+	tar xvf v4l-utils-0.8.8.tar.bz2
+	cd v4l-utils-0.8.8
+	make
+	sudo make install
+
+9. Install OpenCV 2.4.10.
+   a. build opencv
+	cd /var/www/gallery3/imgMatchServer/src_cv
+
+	Create a new build directory and run cmake:
+	cd OpenCV-2.4.2/
+	mkdir build
+	cd build
+	cmake -D CMAKE_BUILD_TYPE=RELEASE ..
+
+   b. Verify that the output of cmake includes the following text:
+	found gstreamer-base-0.10
+	GTK+ 2.x: YES
+	FFMPEG: YES
+	GStreamer: YES
+	V4L/V4L2: Using libv4l
+
+   c. Build and install OpenCV.
+	make
+	sudo make install
+
+10. Configure Linux.
+   a. Tell linux where the shared libraries for OpenCV are located by entering the following shell command:
+	export LD_LIBRARY_PATH=/usr/local/lib
+
+	Add the command to your .bashrc file so that you don’t have to enter every time your start a new terminal.
+
+	Alternatively, you can configure the system wide library search path. Using your favorite editor, add a single line containing the text /usr/local/lib to the end of a file named /etc/ld.so.conf.d/opencv.conf. In the standard Ubuntu install, the opencv.conf file does not exist; you need to create it. Using vi, for example, enter the following commands:
+
+	sudo vi /etc/ld.so.conf.d/opencv.conf
+	G
+	o
+	/usr/local/lib
+	<Esc>
+	:wq!
+
+	After editing the opencv.conf file, enter the following command:
+
+	sudo ldconfig /etc/ld.so.conf
+
+   b. Using your favorite editor, add the following two lines to the end of /etc/bash.bashrc:
+	PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/usr/local/lib/pkgconfig
+	export PKG_CONFIG_PATH
