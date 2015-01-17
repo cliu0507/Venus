@@ -1,0 +1,6 @@
+/* node type could be single or cluster */
+node_type=single
+/* trans type could be network_socket, unix_socket, rpc */
+trans_type=network_socket
+port=9118
+backlog=500

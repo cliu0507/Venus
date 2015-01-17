@@ -41,6 +41,7 @@ using namespace std;
 /* Database */
 #include "imgMatch.h"
 #include "imgMemLayer.h"
+#include "imgDbLayer.h"
 
 /* Face detection includes */
 #include "imgFaceDetection.h"
@@ -140,6 +141,154 @@ double_vector getImageAvgl(const int dbId, long int id) {
 	return res;
 }
 
+int addImageFromDb(const int dbId, const int bizId, const long int id, const long int associatedId, 
+					const int width, const int height, char *sig1, char *sig2, char *sig3, char *avgl) {
+	int index = 0;
+	int i;
+	char *strHead, *strEnd;
+
+	if(!dbSpace.count(dbId))  {
+		if (!imgBinInited) initImgBin();
+
+		dbSpace[dbId] = new dbSpaceStruct();
+	}
+	
+	if (dbSpace[dbId]->sigs.count(id)) {
+		delete dbSpace[dbId]->sigs[id];
+		dbSpace[dbId]->sigs.erase(id);
+		// remove id from each bucket it could be in
+		for (int c = 0; c < 3; c++)
+			for (int pn = 0; pn < 2; pn++)
+				for (int i = 0; i < 16384; i++)
+					dbSpace[dbId]->imgbuckets[c][pn][i].remove(id);
+	}
+
+	SigStruct *nsig = new SigStruct();
+	nsig->id = id;
+	nsig->width = width;
+	nsig->height = height;
+#ifdef IMGMATCH_BUSINESS
+	nsig->bizId = bizId;
+	nsig->associated_id = associatedId;
+#endif
+
+	strHead = sig1;
+	while((strEnd = strstr(strHead, CONTENT_SEP)) && (index < NUM_COEFS))
+	{
+		*strEnd = '\0';
+		nsig->sig1[index] = atoi(strHead);
+
+		strHead = strEnd + 1;
+		index++;
+	}
+	if(index != NUM_COEFS)
+	{
+		logTime();
+		imgGlobal.logHandle << "Wrong sig1 for db = " << dbId
+							<< " id = " << id << " sig1 = " << sig1 << endl;
+		imgGlobal.logHandle.flush();
+	}
+
+	index = 0;
+	strHead = sig2;
+	while((strEnd = strstr(strHead, CONTENT_SEP)) && (index < NUM_COEFS))
+	{
+		*strEnd = '\0';
+		nsig->sig2[index] = atoi(strHead);
+
+		strHead = strEnd + 1;
+		index++;
+	}
+	if(index != NUM_COEFS)
+	{
+		logTime();
+		imgGlobal.logHandle << "Wrong sig2 for db = " << dbId
+							<< " id = " << id << " sig2 = " << sig2 << endl;
+		imgGlobal.logHandle.flush();
+	}
+
+	index = 0;
+	strHead = sig3;
+	while((strEnd = strstr(strHead, CONTENT_SEP)) && (index < NUM_COEFS))
+	{
+		*strEnd = '\0';
+		nsig->sig3[index] = atoi(strHead);
+
+		strHead = strEnd + 1;
+		index++;
+	}
+	if(index != NUM_COEFS)
+	{
+		logTime();
+		imgGlobal.logHandle << "Wrong sig3 for db = " << dbId
+							<< " id = " << id << " sig3 = " << sig3 << endl;
+		imgGlobal.logHandle.flush();
+	}
+
+	index = 0;
+	strHead = avgl;
+	while((strEnd = strstr(strHead, CONTENT_SEP)) && (index < 3))
+	{
+		*strEnd = '\0';
+		nsig->avgl[index] = atof(strHead);
+
+		strHead = strEnd + 1;
+		index++;
+	}
+	if(index != 3)
+	{
+		logTime();
+		imgGlobal.logHandle << "Wrong avgl for db = " << dbId
+							<< " id = " << id << " avgl = " << avgl << endl;
+		imgGlobal.logHandle.flush();
+	}
+
+	// insert into sigmap
+	dbSpace[dbId]->sigs[id] = nsig;
+
+	for (i = 0; i < NUM_COEFS; i++) {	// populate buckets
+#ifdef FAST_POW_GEERT
+		int x, t;
+		// sig[i] never 0
+		int x, t;
+
+		x = nsig->sig1[i];
+		t = (x < 0);		/* t = 1 if x neg else 0 */
+		/* x - 0 ^ 0 = x; i - 1 ^ 0b111..1111 = 2-compl(x) = -x */
+		x = (x - t) ^ -t;
+		dbSpace[dbId]->imgbuckets[0][t][x].push_back(id);
+
+		x = nsig->sig2[i];
+		t = (x < 0);
+		x = (x - t) ^ -t;
+		dbSpace[dbId]->imgbuckets[1][t][x].push_back(id);
+
+		x = nsig->sig3[i];
+		t = (x < 0);
+		x = (x - t) ^ -t;
+		dbSpace[dbId]->imgbuckets[2][t][x].push_back(id);
+
+		should not fail
+
+#else //FAST_POW_GEERT
+		//long_array3 imgbuckets = dbSpace[dbId]->imgbuckets;
+		if (nsig->sig1[i]>0) dbSpace[dbId]->imgbuckets[0][0][nsig->sig1[i]].push_back(id);
+		if (nsig->sig1[i]<0) dbSpace[dbId]->imgbuckets[0][1][-nsig->sig1[i]].push_back(id);
+
+		if (nsig->sig2[i]>0) dbSpace[dbId]->imgbuckets[1][0][nsig->sig2[i]].push_back(id);
+		if (nsig->sig2[i]<0) dbSpace[dbId]->imgbuckets[1][1][-nsig->sig2[i]].push_back(id);
+
+		if (nsig->sig3[i]>0) dbSpace[dbId]->imgbuckets[2][0][nsig->sig3[i]].push_back(id);
+		if (nsig->sig3[i]<0) dbSpace[dbId]->imgbuckets[2][1][-nsig->sig3[i]].push_back(id);
+
+#endif //FAST_POW_GEERT
+
+	}
+
+	// success after all
+	return 1;
+}
+
 int addImageFromImage(const int dbId, const int bizId, const long int id, const long int associatedId, Image * image ) {
 
 	/* id is a unique image identifier
@@ -148,6 +297,12 @@ int addImageFromImage(const int dbId, const int bizId, const long int id, const 
 	doThumb should be set to 1 if you want to save the thumbnail on thname
 	Images with a dimension smaller than ignDim are ignored
 	 */
+	 /* [dfw todo]: fix buffer, either too large (taking too much memory) or too small? this is a general problem in the code! */
+	 char strSig1[500];
+	 char strSig2[500];
+	 char strSig3[500];
+	 char strAvgl[100];
+
 	if (!validate_dbid(dbId)) { cerr << "ERROR: database space not found (" << dbId << ")" << endl; return 0; }
 
     if (image == (Image *) NULL) {
@@ -232,6 +387,11 @@ int addImageFromImage(const int dbId, const int bizId, const long int id, const 
 	calcHaar(cdata1, cdata2, cdata3,
 			nsig->sig1, nsig->sig2, nsig->sig3, nsig->avgl);
 
+	memset(strSig1, 0, 500);
+	memset(strSig2, 0, 500);
+	memset(strSig3, 0, 500);
+	memset(strAvgl, 0, 100);
+
 	for (i = 0; i < NUM_COEFS; i++) {	// populate buckets
 
 
@@ -271,11 +431,21 @@ int addImageFromImage(const int dbId, const int bizId, const long int id, const 
 
 #endif //FAST_POW_GEERT
 
+		sprintf(strSig1, "%s%d%s", strSig1, nsig->sig1[i], CONTENT_SEP);
+		sprintf(strSig2, "%s%d%s", strSig2, nsig->sig2[i], CONTENT_SEP);
+		sprintf(strSig3, "%s%d%s", strSig3, nsig->sig3[i], CONTENT_SEP);
 	}
+
+	for(i = 0; i < 3; i++)
+	{
+		sprintf(strAvgl, "%s%f%s", strAvgl, nsig->avgl[i], CONTENT_SEP);
+	}
+
+	if(!addToDb(dbId, bizId, id, associatedId, width, height, strSig1, strSig2, strSig3, strAvgl, NULL))
+		return 0;
 
 	// success after all
 	return 1;
-
 }
 
 int addImageBlob(const int dbId, const long int id, const char *blob, const long length) {
@@ -533,9 +703,11 @@ int loadalldbs(char* filename) {
 	return res;
 }
 
-bool loadFromDb(int domainId) {
+bool loadFromDb() {
 	/* [dfw todo]: temporary solution now. will use real database to replace it later on. */
-	loadalldbs(imgGlobal.dbFileName);
+	//loadalldbs(imgGlobal.dbFileName);
+	if(!loadDbFromDisk(imgGlobal.dbFileName))
+		return false;
 
 	for(int category = CategoryMin + 1; category < CategoryMax; category++)
 	{
@@ -1104,6 +1276,10 @@ int removeID(const int dbId, long int id) {
 		for (int pn = 0; pn < 2; pn++)
 			for (int i = 0; i < 16384; i++)
 				dbSpace[dbId]->imgbuckets[c][pn][i].remove(id);
+
+	if(!delFromDb(id))
+		return 0;
+
 	return 1;
 }
 

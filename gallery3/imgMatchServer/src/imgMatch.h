@@ -13,6 +13,9 @@ Copyright (C) 2014-2014 Dongfeng Wang
 #include <list>
 #include <queue>
 
+/* SQLite include */
+#include "sqlite3.h"
+
 /* [dfw]: normal users and business users have different memory caches. This way,
 		  we have two benefits: 1. search is fast. 2. we can provide cloud service
 		  to the business users.
@@ -67,18 +70,18 @@ public:
 
     ImgGlobal()
     {
-        domainId = 1;
         isCluster = false;
         transType = NetworkSocket;
         port = 8117;
         backlog = 1000;
+		db = NULL;
     }
 
     ~ImgGlobal()
     {
+		sqlite3_close(db);
     }
 
-    int domainId;
     /* If it's cluster, then for "add", we'll just update local cache;
        for "remove", if the id is not local, we need to broadcast to all
        the peers (message has a special tag so that the receiver won't broadcast it again);
@@ -94,6 +97,7 @@ public:
     int backlog;
 	std::ofstream logHandle;
 	char *dbFileName;
+	sqlite3 *db;
 };
 
 /* in-memory list for add & remove image */
@@ -169,7 +173,7 @@ public:
 typedef std::priority_queue < DistItem > distMapQueue;
 
 /* global function declare */
-char* logTime();
+void logTime();
 void maintenanceThread();
 void flushToDisk();
 void doingAction(imgMatchAction *actionItem);

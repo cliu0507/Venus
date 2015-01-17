@@ -47,12 +47,31 @@ std::clock_t c_start;	/* [dfw todo]: temporary solution, used for flushing memor
 bool b_changed;			/* [dfw todo]: temporary solution, used for flushing memory data to disk file */
 #define TIME_FOR_FLUSH 300	/* [dfw todo]: 5 min */
 
+#define COMMAND_LINE_HELP	"-h"
+
 /* forward declaration */
 static bool initEnv(char *config_file);
+static void printHelp();
 
 /* main function */
 int main(int argc, char **argv)
 {
+	if(argc == 2)
+	{
+		if(strcmp(argv[1], COMMAND_LINE_HELP) == 0)
+		{
+			printHelp();
+
+			return 0;
+		}
+		else
+		{
+			cerr << "Error passing arguments, please try -h option for its detailed use, exit!" << endl;
+
+			return 1;
+		}
+	}
+
 	if(argc != 4)
 	{
 		cerr << "Error passing arguments, exit!" << endl;
@@ -80,7 +99,7 @@ int main(int argc, char **argv)
     }
 
     /* load from db */
-    if(!loadFromDb(imgGlobal.domainId))
+    if(!loadFromDb())
     {
         cerr << "Error loading from database, exit!" << endl;
 
@@ -103,18 +122,18 @@ int main(int argc, char **argv)
 }
 
 /* global function */
-char* logTime()
+void logTime()
 {
-	/* [dfw todo]: asctime is obsolete and is not thread safe (and behavior undefined if output > 25 characters).
-				   consider to replace it with std::strftime in the future.
-	*/
-#if 0
-    std::time_t cur_time = std::time(nullptr);
+	time_t rawtime;
+	struct tm *timeinfo;
+	char buffer[100];
 
-    return (std::asctime(std::localtime(&cur_time)));
-#else
-	return "[dfw log] ";
-#endif
+	time (&rawtime);
+	timeinfo = localtime (&rawtime);
+
+	strftime(buffer, 100, "%c:", timeinfo);
+
+	imgGlobal.logHandle << buffer << endl;
 }
 
 /* [dfw todo]: in the future, this maintenance thread should be a pipeline structure,
@@ -132,7 +151,7 @@ void maintenanceThread()
     while(true)
     {
 		/* [dfw todo]: temporary solution, used to flush memory data to disk file */
-		flushToDisk();
+		//flushToDisk();
 
         action_list_mutex.lock();
         if(!imgAction_list.empty())
@@ -201,7 +220,8 @@ void doingAction(imgMatchAction *actionItem)
 			removeImages(actionItem->categoryId, actionItem->actionString);
 			break;
 		default:
-			imgGlobal.logHandle << logTime() << "Wrong action type found: " << actionItem->actionType << endl;
+			logTime();
+			imgGlobal.logHandle << "Wrong action type found: " << actionItem->actionType << endl;
 			imgGlobal.logHandle.flush();
 	}
 
@@ -226,7 +246,8 @@ void addImages(int categoryId, string actionString)
 		posFind = strAction.find(IMGMATCH_COMMAND_MARKER, 0);
 	    if(posFind == string::npos)
 		{
-			imgGlobal.logHandle << logTime() << "Wrong add string: " << actionString << endl;
+			logTime();
+			imgGlobal.logHandle << "Wrong add string: " << actionString << endl;
 			imgGlobal.logHandle.flush();
 			cout << "[dfw debug]: invaild add string " << actionString << endl;
 
@@ -274,7 +295,8 @@ void addImagesBiz(int categoryId, int bizId, string actionString)
 		posFind = strAction.find(IMGMATCH_COMMAND_MARKER, 0);
 	    if(posFind == string::npos)
 		{
-			imgGlobal.logHandle << logTime() << "Wrong add string1: " << actionString << endl;
+			logTime();
+			imgGlobal.logHandle << "Wrong add string1: " << actionString << endl;
 			imgGlobal.logHandle.flush();
 			cout << "[dfw debug]: invaild add string1 " << actionString << endl;
 
@@ -288,7 +310,8 @@ void addImagesBiz(int categoryId, int bizId, string actionString)
 		posFind = strAssociated.find(IMGMATCH_COMMAND_MARKER, 0);
 	    if(posFind == string::npos)
 		{
-			imgGlobal.logHandle << logTime() << "Wrong add string2: " << actionString << endl;
+			logTime();
+			imgGlobal.logHandle << "Wrong add string2: " << actionString << endl;
 			imgGlobal.logHandle.flush();
 			cout << "[dfw debug]: invaild add string2 " << actionString << endl;
 
@@ -306,7 +329,6 @@ void addImagesBiz(int categoryId, int bizId, string actionString)
 static bool initEnv(char *config_file)
 {
 #define CONF_MARKER             "="
-#define CONF_DOMAIN_ID          "domain_id"
 #define CONF_NODE_TYPE          "node_type"
 #define CONF_NODE_SINGLE        "single"
 #define CONF_NODE_CLUSTER       "cluster"
@@ -337,9 +359,7 @@ static bool initEnv(char *config_file)
         string pre_str = file_line.substr(0, pos);
         string post_str = file_line.substr(pos + 1);
 
-        if(pre_str.compare(CONF_DOMAIN_ID) == 0)
-            imgGlobal.domainId = atoi(post_str.c_str());
-        else if(pre_str.compare(CONF_NODE_TYPE) == 0)
+        if(pre_str.compare(CONF_NODE_TYPE) == 0)
         {
             if(post_str.compare(CONF_NODE_SINGLE) == 0)
                 imgGlobal.isCluster = false;
@@ -368,4 +388,23 @@ static bool initEnv(char *config_file)
 	b_changed = false;
 
     return true;
+}
+
+static void printHelp()
+{
+	cout << "imgMatch is a high-performance image matching server." << endl
+		<<  "Usage:" << endl
+		<<  "  -h: show help message" << endl
+		<<  "  imgMatch.out config_file db_file log_file: startup the imgMatch server" << endl
+		<<  endl
+		<<  "Client can send commands to imgMatch server through socket to add images, delete images, and query images by matching." << endl
+		<<  "Command format:" << endl
+		<<  "  add image     - add:category_id:image_id:image_path;image_id:image_path;...;image_id:image_path;" << endl
+		<<  "  delete image  - del:category_id:image_id;image_id;...;image_id;" << endl
+		<<	"  query by id   - query_id:category_id:image_id:number" << endl
+		<<  "  query by path - query_path:category_id:number:image_path" << endl
+		<<  endl
+		<<  "Note:" << endl
+		<<  "  1. The maximum command length for add and delete is 1k" << endl
+		<<  "  2. The maximum number for query is 100" << endl;
 }

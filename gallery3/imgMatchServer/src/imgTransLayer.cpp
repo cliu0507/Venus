@@ -117,7 +117,8 @@ bool startServer()
     }
 
     printf("Server started, waiting for connections...!\n");
-	imgGlobal.logHandle << logTime() << "Server started, waiting for connections: " << portBuffer << std::endl;
+	logTime();
+	imgGlobal.logHandle << "Server started, waiting for connections: " << portBuffer << std::endl;
 	imgGlobal.logHandle.flush();
 
     while(1) {  /* main accept() loop */
@@ -153,7 +154,8 @@ void handlerThread(int new_fd)
     strFind = strstr(buf, IMGMATCH_COMMAND_MARKER);
     if(!strFind)
     {
-		imgGlobal.logHandle << logTime() << "Invalid command received: " << buf << std::endl;
+		logTime();
+		imgGlobal.logHandle << "Invalid command received: " << buf << std::endl;
 		imgGlobal.logHandle.flush();
         printf("[dfw debug]: invalid command received %s\n", buf);
     }

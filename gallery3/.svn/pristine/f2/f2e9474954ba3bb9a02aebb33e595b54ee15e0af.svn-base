@@ -1,0 +1,1404 @@
+/******************************************************************************
+imgMatch ::  high-performance image matching server
+---------------------------------------
+begin                : Mon Sep 29 2014
+email                : wtfm2000@gmail.com
+
+Copyright (C) 2014-2014 Dongfeng Wang
+
+Improvement:
+- removed lots of dynamic memory usage
+- SigStruct now holds only static data
+- db save and load much faster
+- made Qt image reading faster using scanLine()
+- simpler imgBin initialization
+- corrected pqResults calculation; did not get best scores
+ ******************************************************************************/
+
+/* C Includes */
+#include <ctime>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+#include <vector>
+#include <algorithm>
+#include <cmath>
+#include <limits>
+#include <sstream>
+
+/* STL Includes */
+#include <fstream>
+#include <iostream>
+
+using namespace std;
+/* ImageMagick includes */
+#include <magick/api.h>
+
+/* imgMatch includes */
+
+/* Database */
+#include "imgMatch.h"
+#include "imgMemLayer.h"
+#include "imgDbLayer.h"
+
+/* Face detection includes */
+#include "imgFaceDetection.h"
+
+//TODO reactivate fast jpeg loader: http://trac.xapian.org/browser/branches/imgseek/xapian-extras/imgseek
+
+// Globals
+extern ImgGlobal imgGlobal;
+
+dbSpaceMapType dbSpace;
+
+/* Fixed weight mask for pixel positions (i,j).
+Each entry x = i*NUM_PIXELS + j, gets value max(i,j) saturated at 5.
+To be treated as a constant.
+ */
+unsigned char imgBin[16384];
+int imgBinInited = 0;
+
+// Macros
+#define validate_dbid(dbId) (dbSpace.count(dbId))
+#define validate_imgid(dbId, imgId) (dbSpace.count(dbId) && (dbSpace[dbId]->sigs.count(imgId)))
+
+void initImgBin()
+{
+	imgBinInited = 1;
+	srand((unsigned)time(0));
+
+	/* setup initial fixed weights that each coefficient represents */
+	int i, j;
+
+	/*
+	0 1 2 3 4 5 6 i
+	0 0 1 2 3 4 5 5
+	1 1 1 2 3 4 5 5
+	2 2 2 2 3 4 5 5
+	3 3 3 3 3 4 5 5
+	4 4 4 4 4 4 5 5
+	5 5 5 5 5 5 5 5
+	5 5 5 5 5 5 5 5
+	j
+	 */
+
+	/* Every position has value 5, */
+	memset(imgBin, 5, NUM_PIXELS_SQUARED);
+
+	/* Except for the 5 by 5 upper-left quadrant: */
+	for (i = 0; i < 5; i++)
+		for (j = 0; j < 5; j++)
+			imgBin[i * 128 + j] = max(i, j);
+	// Note: imgBin[0] == 0
+
+}
+
+void initDbase(const int dbId) {
+	/* should be called before adding images */
+	if (!imgBinInited) initImgBin();
+
+	if (dbSpace.count(dbId))  { // db id already used?
+		cerr << "ERROR: dbId already in use" << endl;
+		return;
+	}
+	dbSpace[dbId] = new dbSpaceStruct();
+}
+
+void closeDbase() {
+	/* should be called before exiting app */
+	for (dpspaceIterator it = dbSpace.begin(); it != dbSpace.end(); it++) {
+		resetdb((*it).first);
+        delete (*it).second;
+	}
+}
+
+int getImageWidth(const int dbId, long int id) {
+	if (!validate_imgid(dbId, id)) { cerr << "ERROR: image id (" << id << ") not found on given dbid (" << dbId << ") or dbid not existant" << endl ; return 0;};
+	return dbSpace[dbId]->sigs[id]->width;
+}
+
+bool isImageOnDB(const int dbId, long int id) {
+	if (!validate_dbid(dbId)) { cerr << "ERROR: database space not found (" << dbId << ")" << endl; return false;}
+	return dbSpace[dbId]->sigs.count(id) > 0;
+}
+
+int getImageHeight(const int dbId, long int id) {
+	if (!validate_imgid(dbId, id)) { cerr << "ERROR: image id (" << id << ") not found on given dbid (" << dbId << ") or dbid not existant" << endl ; return 0;};
+	return dbSpace[dbId]->sigs[id]->height;
+}
+
+double_vector getImageAvgl(const int dbId, long int id) {
+	double_vector res;
+	if (!validate_dbid(dbId)) { cerr << "ERROR: database space not found (" << dbId << ")" << endl; return res; }
+
+	if (!dbSpace[dbId]->sigs.count(id))
+		return res;
+	for(int i=0;i<3; i++) {
+		res.push_back(dbSpace[dbId]->sigs[id]->avgl[i]);
+	}
+	return res;
+}
+
+int addImageFromDb(const int dbId, const int bizId, const long int id, const long int associatedId, 
+					const int width, const int height, char *sig1, char *sig2, char *sig3, char *avgl) {
+	int index = 0;
+	int i;
+	char *strHead, *strEnd;
+
+	if(!dbSpace.count(dbId))  {
+		if (!imgBinInited) initImgBin();
+
+		dbSpace[dbId] = new dbSpaceStruct();
+	}
+	
+	if (dbSpace[dbId]->sigs.count(id)) {
+		delete dbSpace[dbId]->sigs[id];
+		dbSpace[dbId]->sigs.erase(id);
+		// remove id from each bucket it could be in
+		for (int c = 0; c < 3; c++)
+			for (int pn = 0; pn < 2; pn++)
+				for (int i = 0; i < 16384; i++)
+					dbSpace[dbId]->imgbuckets[c][pn][i].remove(id);
+	}
+
+	SigStruct *nsig = new SigStruct();
+	nsig->id = id;
+	nsig->width = width;
+	nsig->height = height;
+#ifdef IMGMATCH_BUSINESS
+	nsig->bizId = bizId;
+	nsig->associated_id = associatedId;
+#endif
+
+	strHead = sig1;
+	while((strEnd = strstr(strHead, CONTENT_SEP)) && (index < NUM_COEFS))
+	{
+		*strEnd = '\0';
+		nsig->sig1[index] = atoi(strHead);
+
+		strHead = strEnd + 1;
+		index++;
+	}
+	if(index != NUM_COEFS)
+	{
+		logTime();
+		imgGlobal.logHandle << "Wrong sig1 for db = " << dbId
+							<< " id = " << id << " sig1 = " << sig1 << endl;
+		imgGlobal.logHandle.flush();
+	}
+
+	index = 0;
+	strHead = sig2;
+	while((strEnd = strstr(strHead, CONTENT_SEP)) && (index < NUM_COEFS))
+	{
+		*strEnd = '\0';
+		nsig->sig2[index] = atoi(strHead);
+
+		strHead = strEnd + 1;
+		index++;
+	}
+	if(index != NUM_COEFS)
+	{
+		logTime();
+		imgGlobal.logHandle << "Wrong sig2 for db = " << dbId
+							<< " id = " << id << " sig2 = " << sig2 << endl;
+		imgGlobal.logHandle.flush();
+	}
+
+	index = 0;
+	strHead = sig3;
+	while((strEnd = strstr(strHead, CONTENT_SEP)) && (index < NUM_COEFS))
+	{
+		*strEnd = '\0';
+		nsig->sig3[index] = atoi(strHead);
+
+		strHead = strEnd + 1;
+		index++;
+	}
+	if(index != NUM_COEFS)
+	{
+		logTime();
+		imgGlobal.logHandle << "Wrong sig3 for db = " << dbId
+							<< " id = " << id << " sig3 = " << sig3 << endl;
+		imgGlobal.logHandle.flush();
+	}
+
+	index = 0;
+	strHead = avgl;
+	while((strEnd = strstr(strHead, CONTENT_SEP)) && (index < 3))
+	{
+		*strEnd = '\0';
+		nsig->avgl[index] = atof(strHead);
+
+		strHead = strEnd + 1;
+		index++;
+	}
+	if(index != 3)
+	{
+		logTime();
+		imgGlobal.logHandle << "Wrong avgl for db = " << dbId
+							<< " id = " << id << " avgl = " << avgl << endl;
+		imgGlobal.logHandle.flush();
+	}
+
+	// insert into sigmap
+	dbSpace[dbId]->sigs[id] = nsig;
+
+	for (i = 0; i < NUM_COEFS; i++) {	// populate buckets
+#ifdef FAST_POW_GEERT
+		int x, t;
+		// sig[i] never 0
+		int x, t;
+
+		x = nsig->sig1[i];
+		t = (x < 0);		/* t = 1 if x neg else 0 */
+		/* x - 0 ^ 0 = x; i - 1 ^ 0b111..1111 = 2-compl(x) = -x */
+		x = (x - t) ^ -t;
+		dbSpace[dbId]->imgbuckets[0][t][x].push_back(id);
+
+		x = nsig->sig2[i];
+		t = (x < 0);
+		x = (x - t) ^ -t;
+		dbSpace[dbId]->imgbuckets[1][t][x].push_back(id);
+
+		x = nsig->sig3[i];
+		t = (x < 0);
+		x = (x - t) ^ -t;
+		dbSpace[dbId]->imgbuckets[2][t][x].push_back(id);
+
+		should not fail
+
+#else //FAST_POW_GEERT
+		//long_array3 imgbuckets = dbSpace[dbId]->imgbuckets;
+		if (nsig->sig1[i]>0) dbSpace[dbId]->imgbuckets[0][0][nsig->sig1[i]].push_back(id);
+		if (nsig->sig1[i]<0) dbSpace[dbId]->imgbuckets[0][1][-nsig->sig1[i]].push_back(id);
+
+		if (nsig->sig2[i]>0) dbSpace[dbId]->imgbuckets[1][0][nsig->sig2[i]].push_back(id);
+		if (nsig->sig2[i]<0) dbSpace[dbId]->imgbuckets[1][1][-nsig->sig2[i]].push_back(id);
+
+		if (nsig->sig3[i]>0) dbSpace[dbId]->imgbuckets[2][0][nsig->sig3[i]].push_back(id);
+		if (nsig->sig3[i]<0) dbSpace[dbId]->imgbuckets[2][1][-nsig->sig3[i]].push_back(id);
+
+#endif //FAST_POW_GEERT
+
+	}
+
+	// success after all
+	return 1;
+}
+
+int addImageFromImage(const int dbId, const int bizId, const long int id, const long int associatedId, Image * image ) {
+
+	/* id is a unique image identifier
+	filename is the image location
+	thname is the thumbnail location for this image
+	doThumb should be set to 1 if you want to save the thumbnail on thname
+	Images with a dimension smaller than ignDim are ignored
+	 */
+	 /* [dfw todo]: fix buffer, either too large (taking too much memory) or too small? this is a general problem in the code! */
+	 char strSig1[500];
+	 char strSig2[500];
+	 char strSig3[500];
+	 char strAvgl[100];
+
+	if (!validate_dbid(dbId)) { cerr << "ERROR: database space not found (" << dbId << ")" << endl; return 0; }
+
+    if (image == (Image *) NULL) {
+    	cerr << "ERROR: unable to add null image" << endl;
+    	return 0;
+    }
+
+	if (dbSpace[dbId]->sigs.count(id)) {
+		delete dbSpace[dbId]->sigs[id];
+		dbSpace[dbId]->sigs.erase(id);
+		// remove id from each bucket it could be in
+		for (int c = 0; c < 3; c++)
+			for (int pn = 0; pn < 2; pn++)
+				for (int i = 0; i < 16384; i++)
+					dbSpace[dbId]->imgbuckets[c][pn][i].remove(id);
+	}
+
+	// Made static for speed; only used locally
+	static Unit cdata1[16384];
+	static Unit cdata2[16384];
+	static Unit cdata3[16384];
+	int i;
+	int width, height;
+
+	ExceptionInfo exception;
+
+	Image *resize_image;
+
+	/*
+	Initialize the image info structure and read an image.
+	 */
+	GetExceptionInfo(&exception);
+
+	width = image->columns;
+	height = image->rows;
+
+	resize_image = SampleImage(image, 128, 128, &exception);
+
+	DestroyImage(image);
+
+	DestroyExceptionInfo(&exception);
+
+	if (resize_image == (Image *) NULL) {
+		cerr << "ERROR: unable to resize image" << endl;
+		return 0;
+	}
+
+    // store color value for basic channels
+	unsigned char rchan[16384];
+	unsigned char gchan[16384];
+	unsigned char bchan[16384];
+
+	GetExceptionInfo(&exception);
+
+	const PixelPacket *pixel_cache = AcquireImagePixels(resize_image, 0, 0, 128, 128, &exception);
+
+	for (int idx = 0; idx < 16384; idx++) {
+		rchan[idx] = pixel_cache->red;
+		gchan[idx] = pixel_cache->green;
+		bchan[idx] = pixel_cache->blue;
+		pixel_cache++;
+	}
+
+    DestroyImage(resize_image);
+
+	transformChar(rchan, gchan, bchan, cdata1, cdata2, cdata3);
+
+	DestroyExceptionInfo(&exception);
+
+	SigStruct *nsig = new SigStruct();
+	nsig->id = id;
+	nsig->width = width;
+	nsig->height = height;
+#ifdef IMGMATCH_BUSINESS
+	nsig->bizId = bizId;
+	nsig->associated_id = associatedId;
+#endif
+
+	// insert into sigmap
+	dbSpace[dbId]->sigs[id] = nsig;
+
+	calcHaar(cdata1, cdata2, cdata3,
+			nsig->sig1, nsig->sig2, nsig->sig3, nsig->avgl);
+
+	memset(strSig1, 0, 500);
+	memset(strSig2, 0, 500);
+	memset(strSig3, 0, 500);
+	memset(strAvgl, 0, 100);
+
+	for (i = 0; i < NUM_COEFS; i++) {	// populate buckets
+
+
+#ifdef FAST_POW_GEERT
+		int x, t;
+		// sig[i] never 0
+		int x, t;
+
+		x = nsig->sig1[i];
+		t = (x < 0);		/* t = 1 if x neg else 0 */
+		/* x - 0 ^ 0 = x; i - 1 ^ 0b111..1111 = 2-compl(x) = -x */
+		x = (x - t) ^ -t;
+		dbSpace[dbId]->imgbuckets[0][t][x].push_back(id);
+
+		x = nsig->sig2[i];
+		t = (x < 0);
+		x = (x - t) ^ -t;
+		dbSpace[dbId]->imgbuckets[1][t][x].push_back(id);
+
+		x = nsig->sig3[i];
+		t = (x < 0);
+		x = (x - t) ^ -t;
+		dbSpace[dbId]->imgbuckets[2][t][x].push_back(id);
+
+		should not fail
+
+#else //FAST_POW_GEERT
+		//long_array3 imgbuckets = dbSpace[dbId]->imgbuckets;
+		if (nsig->sig1[i]>0) dbSpace[dbId]->imgbuckets[0][0][nsig->sig1[i]].push_back(id);
+		if (nsig->sig1[i]<0) dbSpace[dbId]->imgbuckets[0][1][-nsig->sig1[i]].push_back(id);
+
+		if (nsig->sig2[i]>0) dbSpace[dbId]->imgbuckets[1][0][nsig->sig2[i]].push_back(id);
+		if (nsig->sig2[i]<0) dbSpace[dbId]->imgbuckets[1][1][-nsig->sig2[i]].push_back(id);
+
+		if (nsig->sig3[i]>0) dbSpace[dbId]->imgbuckets[2][0][nsig->sig3[i]].push_back(id);
+		if (nsig->sig3[i]<0) dbSpace[dbId]->imgbuckets[2][1][-nsig->sig3[i]].push_back(id);
+
+#endif //FAST_POW_GEERT
+
+		sprintf(strSig1, "%s%d%s", strSig1, nsig->sig1[i], CONTENT_SEP);
+		sprintf(strSig2, "%s%d%s", strSig2, nsig->sig2[i], CONTENT_SEP);
+		sprintf(strSig3, "%s%d%s", strSig3, nsig->sig3[i], CONTENT_SEP);
+	}
+
+	for(i = 0; i < 3; i++)
+	{
+		sprintf(strAvgl, "%s%f%s", strAvgl, nsig->avgl[i], CONTENT_SEP);
+	}
+
+	if(!addToDb(dbId, bizId, id, associatedId, width, height, strSig1, strSig2, strSig3, strAvgl, NULL))
+		return 0;
+
+	// success after all
+	return 1;
+}
+
+int addImageBlob(const int dbId, const long int id, const char *blob, const long length) {
+
+	ExceptionInfo exception;
+	GetExceptionInfo(&exception);
+
+	ImageInfo *image_info;
+	image_info = CloneImageInfo((ImageInfo *) NULL);
+
+	Image *image = BlobToImage(image_info, blob, length, &exception);
+	if (exception.severity != UndefinedException) CatchException(&exception);
+
+	DestroyImageInfo(image_info);
+	return addImageFromImage(dbId, -1, id, -1, image);
+}
+
+int addImage(const int dbId, const long int id, const char *filename) {
+
+	if (dbSpace[dbId]->sigs.count(id)) { // image already in db
+		if(!removeID(dbId, id))
+			return 0;
+	}
+
+	//TODO update image: remove old, add new
+
+	ExceptionInfo exception;
+	GetExceptionInfo(&exception);
+
+#ifdef FACE_DETECTION_ENABLE
+        const char *face_detected_filename;
+
+        if(getFaceDetectedImage(id, filename))
+        {
+            char str[64], tmp[64], *temp;
+
+            strcpy(tmp, "/var/www/gallery3/imgMatchServer/");
+            sprintf(str,"%lu",id);
+            strcat(str, ".jpg");
+
+            face_detected_filename = strcat(tmp, str);
+        }
+
+        filename = face_detected_filename; 
+#endif
+
+	ImageInfo *image_info;
+	image_info = CloneImageInfo((ImageInfo *) NULL);
+	(void) strcpy(image_info->filename, filename);
+	Image *image = ReadImage(image_info, &exception);
+	if (exception.severity != UndefinedException) CatchException(&exception);
+	DestroyImageInfo(image_info);
+	DestroyExceptionInfo(&exception);
+
+	if (image == (Image *) NULL) {
+    	cerr << "ERROR: unable to read image" << endl;
+    	return 0;
+    }
+
+	return addImageFromImage(dbId, -1, id, -1, image);
+}
+
+int addImageBiz(const int dbId, const int bizId, const long int id, const long int associatedId, const char *filename) {
+
+	if (dbSpace[dbId]->sigs.count(id)) { // image already in db
+		if(!removeID(dbId, id))
+			return 0;
+	}
+
+	//TODO update image: remove old, add new
+
+	ExceptionInfo exception;
+	GetExceptionInfo(&exception);
+
+	ImageInfo *image_info;
+	image_info = CloneImageInfo((ImageInfo *) NULL);
+	(void) strcpy(image_info->filename, filename);
+	Image *image = ReadImage(image_info, &exception);
+	if (exception.severity != UndefinedException) CatchException(&exception);
+	DestroyImageInfo(image_info);
+	DestroyExceptionInfo(&exception);
+
+	if (image == (Image *) NULL) {
+    	cerr << "ERROR: unable to read image" << endl;
+    	return 0;
+    }
+
+	return addImageFromImage(dbId, bizId, id, associatedId, image);
+}
+
+int loaddbfromstream(const int dbId, std::ifstream& f, srzMetaDataStruct& md) {
+
+	if (!dbSpace.count(dbId))  { // haven't been inited yet
+		initDbase(dbId);
+	} else { // already exists, so reset first
+		resetdb(dbId);
+	}
+
+	long int id;
+	int sz;
+	// read buckets
+	for (int c = 0; c < 3; c++)
+		for (int pn = 0; pn < 2; pn++)
+			for (int i = 0; i < 16384; i++) {
+				f.read((char *) &(sz), sizeof(int));
+				if (!f.good()) {
+					continue;
+				}
+				for (int k = 0; k < sz; k++) {
+					f.read((char *) &(id), sizeof(long int));
+					if (!f.good()) {
+						cerr << "ERROR bad file while reading id" << endl;
+						continue;
+					}
+					dbSpace[dbId]->imgbuckets[c][pn][i].push_back(id);
+				}
+			}
+
+	// read sigs
+	sigMap::size_type szt;
+	f.read((char *) &(szt), sizeof(sigMap::size_type));
+	if (!f.good()) {
+		cerr << "ERROR bad file while reading sigs size" << endl;
+		return 0;
+	}
+
+	for (unsigned int k = 0; k < szt; k++) {
+		SigStruct* nsig = new SigStruct();
+
+		f.read((char *) nsig, sizeof(SigStruct));
+		if (!f.good()) {
+			cerr << "ERROR bad file while reading SigStruct" << endl;
+			return 0;
+		}
+
+		// insert new sig
+		dbSpace[dbId]->sigs[nsig->id]=nsig;
+	}
+
+	return 1;
+}
+
+srzMetaDataStruct loadGlobalSerializationMetadata(std::ifstream& f) {
+
+	srzMetaDataStruct md;
+
+	// isk version
+	f.read((char *) &(md.iskVersion), sizeof(int));
+	if (!f.good()) {
+		cerr << "ERROR bad file while reading isk version" << endl;
+		return md;
+	}
+
+	// binding language
+	f.read((char *) &(md.bindingLang), sizeof(int));
+	if (!f.good()) {
+		cerr << "ERROR bad file while reading lang" << endl;
+		return md;
+	}
+
+    // trial or full
+    if (md.iskVersion < SRZ_V0_7_0) {
+    	f.read((char *) &(md.isTrial), sizeof(int));
+    }
+
+	// platform
+	f.read((char *) &(md.compilePlat), sizeof(int));
+	if (!f.good()) {
+		cerr << "ERROR bad file while reading platf" << endl;
+		return md;
+	}
+
+	// ok, I have some valid metadata
+	md.isValidMetadata = 1;
+
+	return md;
+}
+
+int loaddb(const int dbId, char *filename) {
+	std::ifstream f(filename, ios::binary);
+	if (!f.is_open()) {
+		cerr << "ERROR: unable to open file for read ops:" << filename << endl;
+		return 0;
+
+
+	}
+
+	int isMetadata = f.peek();
+
+	srzMetaDataStruct md;
+	md.isValidMetadata = 0;
+
+	if (isMetadata == SRZ_VERSIONED) { // has metadata
+		f.read((char *) &(isMetadata), sizeof(int));
+		if (!f.good()) {
+			cerr << "ERROR bad file while reading is meta" << endl;
+			return 0;
+		}
+
+		md = loadGlobalSerializationMetadata(f);
+	}
+
+	int res = loaddbfromstream(dbId, f, md);
+
+	f.close();
+	return res;
+}
+
+int loadalldbs(char* filename) {
+	std::ifstream f(filename, ios::binary);
+
+	if (!f.is_open()) { // file not found, perhaps its the first start
+		return 0;
+	}
+
+	int isMetadata = f.peek();
+
+	srzMetaDataStruct md;
+	md.isValidMetadata = 0;
+
+	if (isMetadata == SRZ_VERSIONED) {// has metadata
+		f.read((char *) &(isMetadata), sizeof(int));
+		if (!f.good()) {
+			cerr << "ERROR bad file while reading is meta 2" << endl;
+			return 0;
+		}
+
+		if (isMetadata != SRZ_VERSIONED) {
+			cerr << "ERROR: peek diff read" << endl;
+			return 0;
+		}
+		md = loadGlobalSerializationMetadata(f);
+	}
+
+	int dbId = 1;
+	int res = 0;
+	int sz = 0;
+
+	f.read((char *) &(sz), sizeof(int)); // number of dbs
+	if (!f.good()) {
+		cerr << "ERROR bad file while reading num dbs" << endl;
+		return 0;
+	}
+
+	for (int k = 0; k < sz; k++) { // for each db
+		f.read((char *) &(dbId), sizeof(int)); // db id
+		if (!f.good()) {
+			cerr << "ERROR bad file while reading db id" << endl;
+			return 0;
+		}
+		res += loaddbfromstream(dbId, f, md);
+	}
+
+	f.close();
+	return res;
+}
+
+bool loadFromDb() {
+	/* [dfw todo]: temporary solution now. will use real database to replace it later on. */
+	//loadalldbs(imgGlobal.dbFileName);
+	if(!loadDbFromDisk(imgGlobal.dbFileName))
+		return false;
+
+	for(int category = CategoryMin + 1; category < CategoryMax; category++)
+	{
+		if (!dbSpace.count(category))  { // haven't been inited yet
+			initDbase(category);
+		}
+	}
+
+	return true;
+}
+
+int savedbtostream(const int dbId, std::ofstream& f) {
+	/*
+	Serialization order:
+	for each color {0,1,2}:
+	for {positive,negative}:
+	for each 128x128 coefficient {0-16384}:
+	[int] bucket size (size of list of ids)
+	for each id:
+	[long int] image id
+	[int] number of images (signatures)
+	for each image:
+	[long id] image id
+	for each sig coef {0-39}:  (the NUM_COEFS greatest coefs)
+	for each color {0,1,2}:
+	[int] coef index (signed)
+	for each color {0,1,2}:
+	[double] average luminance
+	[int] image width
+	[int] image height
+
+	 */
+	int sz;
+
+	if (!validate_dbid(dbId)) { cerr << "ERROR: database space not found (" << dbId << ")" << endl; return 0;}
+
+	// save buckets
+	for (int c = 0; c < 3; c++) {
+		for (int pn = 0; pn < 2; pn++) {
+			for (int i = 0; i < 16384; i++) {
+				sz = dbSpace[dbId]->imgbuckets[c][pn][i].size();
+
+				f.write((char *) &(sz), sizeof(int));
+				long_listIterator end = dbSpace[dbId]->imgbuckets[c][pn][i].end();
+				for (long_listIterator it = dbSpace[dbId]->imgbuckets[c][pn][i].begin(); it != end; it++) {
+					f.write((char *) &((*it)), sizeof(long int));
+				}
+			}
+		}
+	}
+
+	// save sigs
+	sigMap::size_type szt = dbSpace[dbId]->sigs.size();
+
+	f.write((char *) &(szt), sizeof(sigMap::size_type));
+
+	for (sigIterator it = dbSpace[dbId]->sigs.begin(); it != dbSpace[dbId]->sigs.end(); it++) {
+		SigStruct* sig = (SigStruct*) (it->second);
+		f.write((char *) (sig), sizeof(SigStruct));
+	}
+
+	return 1;
+}
+
+void saveGlobalSerializationMetadata(std::ofstream& f) {
+
+	int wval;
+
+	// is versioned
+	wval = SRZ_VERSIONED;
+	f.write((char*)&(wval), sizeof(int));
+
+	// isk version
+	wval = SRZ_CUR_VERSION;
+	f.write((char*)&(wval), sizeof(int));
+
+	// binding language
+#ifdef ISK_SWIG_JAVA
+	wval = SRZ_LANG_JAVA;
+	f.write((char*)&(wval), sizeof(int));
+#else
+	wval = SRZ_LANG_PYTHON;
+	f.write((char*)&(wval), sizeof(int));
+#endif
+
+	// platform
+#ifdef _WINDOWS
+	wval = SRZ_PLAT_WINDOWS;
+	f.write((char*)&(wval), sizeof(int));
+#else
+	wval = SRZ_PLAT_LINUX;
+	f.write((char*)&(wval), sizeof(int));
+#endif
+}
+
+int savedb(const int dbId, char *filename) {
+	std::ofstream f(filename, ios::binary);
+	if (!f.is_open()) {
+		cerr << "ERROR: error opening file for write ops" << endl;
+		return 0;
+
+
+	}
+
+	saveGlobalSerializationMetadata(f);
+
+	int res = savedbtostream( dbId, f);
+	f.close();
+	return res;
+}
+
+int savealldbs(char* filename) {
+	std::ofstream f(filename, ios::binary);
+	if (!f.is_open()) {
+		cerr << "ERROR: error opening file for write ops" << endl;
+		return 0;
+	}
+
+	saveGlobalSerializationMetadata(f);
+
+	int res = 0;
+	int sz = dbSpace.size();
+	f.write((char *) &(sz), sizeof(int)); // num dbs
+	int dbId;
+
+	for (dpspaceIterator it = dbSpace.begin(); it != dbSpace.end(); it++) {
+		dbId = (*it).first;
+		f.write((char *) &(dbId), sizeof(int)); // db id
+		res += savedbtostream( dbId, f);
+	}
+
+	f.close();
+	return res;
+}
+
+distMapQueue queryImgDataFiltered(const int dbId, Idx * sig1, Idx * sig2, Idx * sig3, double *avgl, int numres, int sketch, bool colorOnly, int bizId) {
+	int idx, c;
+	int pn;
+	Idx *sig[3] = { sig1, sig2, sig3 };
+	distMap dist_map;
+
+#if 0
+        for (int i = 0; i < NUM_COEFS; i++) {
+            printf("i = %d sig: %d %d %d\n", i, sig1[i], sig2[i], sig3[i]);
+        }
+#endif
+
+	// search all images
+	for (sigIterator sit = dbSpace[dbId]->sigs.begin(); sit != dbSpace[dbId]->sigs.end(); sit++) {
+#ifdef IMGMATCH_BUSINESS
+		if(bizId == -1)	/* [dfw todo]: will this extra check make the program slower? */
+		{
+			dist_map[(*sit).second->id] = 0;    
+			for (c = 0; c < 3; c++) {
+				dist_map[(*sit).second->id] += weights[sketch][0][c] * fabs((*sit).second->avgl[c] - avgl[c]);
+			}
+		}
+		else if((*sit).second->bizId == bizId)
+		{
+			dist_map[(*sit).second->associated_id] = 0;    
+			for (c = 0; c < 3; c++) {
+				dist_map[(*sit).second->associated_id] += weights[sketch][0][c] * fabs((*sit).second->avgl[c] - avgl[c]);
+			}
+		}
+#else
+		dist_map[(*sit).second->id] = 0;    
+		for (c = 0; c < 3; c++) {
+			dist_map[(*sit).second->id] += weights[sketch][0][c] * fabs((*sit).second->avgl[c] - avgl[c]);
+		}
+#endif
+	}
+
+    if (!colorOnly) {
+        for (int b = 0; b < NUM_COEFS; b++) {	// for every coef on a sig
+            for (c = 0; c < 3; c++) {
+                //TODO see if FAST_POW_GEERT gives the same results
+#ifdef FAST_POW_GEERT
+                pn  = sig[c][b] < 0;
+                idx = (sig[c][b] - pn) ^ -pn;
+#else
+                pn = 0;
+                if (sig[c][b]>0) {
+                    pn = 0;
+                    idx = sig[c][b];
+                } else {
+                    pn = 1;
+                    idx = -sig[c][b];
+                }
+#endif
+
+                // update the score of every image which has this coef
+                long_listIterator end = dbSpace[dbId]->imgbuckets[c][pn][idx].end();
+                for (long_listIterator uit = dbSpace[dbId]->imgbuckets[c][pn][idx].begin(); uit != end; uit++) {
+                    //TODO in each iteration search in tree (std::map) is performed. i think the better way to link by pointers.
+#ifdef IMGMATCH_BUSINESS
+					if(bizId == -1)	/* [dfw todo]: will this extra check make the program slower? */
+					{
+						dist_map[dbSpace[dbId]->sigs[(*uit)]->id] -= weights[sketch][imgBin[idx]][c];
+					}
+					else if(dbSpace[dbId]->sigs[(*uit)]->bizId == bizId)
+					{
+						dist_map[dbSpace[dbId]->sigs[(*uit)]->associated_id] -= weights[sketch][imgBin[idx]][c];
+					}
+#else
+					dist_map[dbSpace[dbId]->sigs[(*uit)]->id] -= weights[sketch][imgBin[idx]][c];
+#endif
+                }
+            }
+        }
+    }
+
+	distMapQueue pqResults;		/* results priority queue; largest at top */
+
+	distMapIterator sit = dist_map.begin();
+
+	// Fill up the numres-bounded priority queue (largest at top):
+	for (int cnt = 0; cnt < numres; cnt++) {
+		if (sit == dist_map.end()) {
+			// No more images, just break out of the loop
+			break;
+		}
+		pqResults.push(DistItem((*sit).first, (*sit).second));
+		sit++;
+	}
+
+	for (; sit != dist_map.end(); sit++) {
+		// only consider if not ignored due to keywords and if is a better match than the current worst match
+		/* [dfw]: (*sit).second and pgResults.top() are both negative number. */
+		if (((*sit).second < 99999) && ((*sit).second < pqResults.top().score)) {
+			// Make room by dropping largest entry:
+			pqResults.pop();
+			// Insert new entry:
+			pqResults.push(DistItem((*sit).first, (*sit).second));
+		}
+	}
+
+	return pqResults;
+}
+
+
+/* sig1,2,3 are int arrays of length NUM_COEFS
+avgl is the average luminance
+numres is the max number of results
+sketch (0 or 1) tells which set of weights to use
+ */
+distMapQueue queryImgData(const int dbId, Idx * sig1, Idx * sig2, Idx * sig3, double *avgl, int numres, int sketch, bool colorOnly, int bizId) {
+	return queryImgDataFiltered(dbId, sig1, sig2, sig3, avgl, numres, sketch, colorOnly, bizId);
+
+}
+
+/* sig1,2,3 are int arrays of lenght NUM_COEFS
+avgl is the average luminance
+thresd is the limit similarity threshold. Only images with score > thresd will be a result
+`sketch' tells which set of weights to use
+sigs is the source to query on (map of signatures)
+every search result is removed from sigs. (right now this functn is only used by clusterSim)
+ */
+long_list queryImgDataForThres(const int dbId, sigMap * tsigs,
+		Idx * sig1, Idx * sig2, Idx * sig3,
+		double *avgl, float thresd, int sketch) {
+	//int idx, c;
+	//int pn;
+	long_list res;
+	//Idx *sig[3] = { sig1, sig2, sig3 };
+/* [dfw todo]: implement later. don't see its use in the near future. */
+#if 0
+	if (!validate_dbid(dbId)) { cerr << "ERROR: database space not found (" << dbId << ")" << endl; return res;}
+
+	for (sigIterator sit = (*tsigs).begin(); sit != (*tsigs).end(); sit++) {
+		(*sit).second->score = 0;
+		for (c = 0; c < 3; c++)
+			(*sit).second->score += weights[sketch][0][c]
+			                                           * fabs((*sit).second->avgl[c] - avgl[c]);
+	}
+	for (int b = 0; b < NUM_COEFS; b++) {	// for every coef on a sig
+		for (c = 0; c < 3; c++) {
+#ifdef FAST_POW_GEERT  //TODO is it faster? same results? remove this code?
+			pn  = sig[c][b] < 0;
+			idx = (sig[c][b] - pn) ^ -pn;
+#else
+			pn = 0;
+			if (sig[c][b]>0) {
+				pn = 0;
+				idx = sig[c][b];
+			} else {
+				pn = 1;
+				idx = -sig[c][b];
+			}
+#endif
+			// update the score of every image which has this coef
+			//TODO in each iteration search in tree (std::map) is performed. i think the better way to link by pointers.
+			long_listIterator end = dbSpace[dbId]->imgbuckets[c][pn][idx].end();
+			for (long_listIterator uit = dbSpace[dbId]->imgbuckets[c][pn][idx].begin();
+			uit != end; uit++) {
+				if ((*tsigs).count((*uit)))
+					// this is an ugly line
+					(*tsigs)[(*uit)]->score -=
+						weights[sketch][imgBin[idx]][c];
+			}
+		}
+	}
+	for (sigIterator sit = (*tsigs).begin(); sit != (*tsigs).end(); sit++) {
+		if ((*sit).second->score < thresd) {
+			res.push_back((*sit).second->id);
+			(*tsigs).erase((*sit).second->id);
+		}
+	}
+#endif
+	return res;
+}
+
+long_list queryImgDataForThresFast(sigMap * tsigs, double *avgl, float thresd, int sketch) {
+
+	// will only look for average luminance
+	long_list res;
+/* [dfw todo]: implement later. don't see its use in the near future. */
+#if 0
+	for (sigIterator sit = (*tsigs).begin(); sit != (*tsigs).end(); sit++) {
+		(*sit).second->score = 0;
+		for (int c = 0; c < 3; c++)
+			(*sit).second->score += weights[sketch][0][c]
+			                                           * fabs((*sit).second->avgl[c] - avgl[c]);
+		if ((*sit).second->score < thresd) {
+			res.push_back((*sit).second->id);
+			(*tsigs).erase((*sit).second->id);
+		}
+	}
+#endif
+	return res;
+}
+
+//TODO some places are using double_vector others std::vector. Decide!
+distMapQueue queryImgBlob(const int dbId, const char* data,const long length, int numres,int sketch, bool colorOnly) {
+	ExceptionInfo exception;
+	GetExceptionInfo(&exception);
+
+	ImageInfo *image_info;
+	image_info = CloneImageInfo((ImageInfo *) NULL);
+
+	Image *image = BlobToImage(image_info, data, length, &exception);
+	if (exception.severity != UndefinedException) CatchException(&exception);
+
+	DestroyImageInfo(image_info);
+
+	// Made static for speed; only used locally
+	static Unit cdata1[16384];
+	static Unit cdata2[16384];
+	static Unit cdata3[16384];
+
+	Image *resize_image;
+
+	/*
+	Initialize the image info structure and read an image.
+	 */
+	GetExceptionInfo(&exception);
+
+	resize_image = SampleImage(image, 128, 128, &exception);
+
+	DestroyImage(image);
+
+	DestroyExceptionInfo(&exception);
+
+	if (resize_image == (Image *) NULL) {
+		cerr << "ERROR: unable to resize image" << endl;
+    	return distMapQueue();
+	}
+
+    // store color value for basic channels
+	unsigned char rchan[16384];
+	unsigned char gchan[16384];
+	unsigned char bchan[16384];
+
+	GetExceptionInfo(&exception);
+
+	const PixelPacket *pixel_cache = AcquireImagePixels(resize_image, 0, 0, 128, 128, &exception);
+
+	for (int idx = 0; idx < 16384; idx++) {
+		rchan[idx] = pixel_cache->red;
+		gchan[idx] = pixel_cache->green;
+		bchan[idx] = pixel_cache->blue;
+		pixel_cache++;
+	}
+
+    DestroyImage(resize_image);
+
+	transformChar(rchan, gchan, bchan, cdata1, cdata2, cdata3);
+
+	DestroyExceptionInfo(&exception);
+
+	SigStruct *nsig = new SigStruct();
+    //TODO leaking nsig?
+	calcHaar(cdata1, cdata2, cdata3,
+			nsig->sig1, nsig->sig2, nsig->sig3, nsig->avgl);
+
+	return queryImgData(dbId, nsig->sig1, nsig->sig2, nsig->sig3,
+			nsig->avgl, numres, sketch, colorOnly, -1);
+}
+
+distMapQueue queryImgPath(const int dbId, char* path,int numres,int sketch, bool colorOnly) {
+
+	ExceptionInfo exception;
+	GetExceptionInfo(&exception);
+
+	ImageInfo *image_info;
+	image_info = CloneImageInfo((ImageInfo *) NULL);
+	(void) strcpy(image_info->filename, path);
+	Image *image = ReadImage(image_info, &exception);
+	if (exception.severity != UndefinedException) CatchException(&exception);
+	DestroyImageInfo(image_info);
+	DestroyExceptionInfo(&exception);
+
+	if (image == (Image *) NULL) {
+    	cerr << "ERROR: unable to read image" << endl;
+    	return distMapQueue();
+    }
+
+	// Made static for speed; only used locally
+	static Unit cdata1[16384];
+	static Unit cdata2[16384];
+	static Unit cdata3[16384];
+
+	Image *resize_image;
+
+	/*
+	Initialize the image info structure and read an image.
+	 */
+	GetExceptionInfo(&exception);
+
+	resize_image = SampleImage(image, 128, 128, &exception);
+
+	DestroyImage(image);
+
+	DestroyExceptionInfo(&exception);
+
+	if (resize_image == (Image *) NULL) {
+		cerr << "ERROR: unable to resize image" << endl;
+    	return distMapQueue();
+	}
+
+    // store color value for basic channels
+	unsigned char rchan[16384];
+	unsigned char gchan[16384];
+	unsigned char bchan[16384];
+
+	GetExceptionInfo(&exception);
+
+	const PixelPacket *pixel_cache = AcquireImagePixels(resize_image, 0, 0, 128, 128, &exception);
+
+	for (int idx = 0; idx < 16384; idx++) {
+		rchan[idx] = pixel_cache->red;
+		gchan[idx] = pixel_cache->green;
+		bchan[idx] = pixel_cache->blue;
+		pixel_cache++;
+	}
+
+    DestroyImage(resize_image);
+
+	transformChar(rchan, gchan, bchan, cdata1, cdata2, cdata3);
+
+	DestroyExceptionInfo(&exception);
+
+	SigStruct *nsig = new SigStruct();
+
+	calcHaar(cdata1, cdata2, cdata3,
+			nsig->sig1, nsig->sig2, nsig->sig3, nsig->avgl);
+
+	return queryImgData(dbId, nsig->sig1, nsig->sig2, nsig->sig3,
+			nsig->avgl, numres, sketch, colorOnly, -1);
+}
+
+distMapQueue queryImgPathCloud(const int dbId, char* path,int numres,int sketch, bool colorOnly, int bizId) {
+
+	ExceptionInfo exception;
+	GetExceptionInfo(&exception);
+
+	ImageInfo *image_info;
+	image_info = CloneImageInfo((ImageInfo *) NULL);
+	(void) strcpy(image_info->filename, path);
+	Image *image = ReadImage(image_info, &exception);
+	if (exception.severity != UndefinedException) CatchException(&exception);
+	DestroyImageInfo(image_info);
+	DestroyExceptionInfo(&exception);
+
+	if (image == (Image *) NULL) {
+    	cerr << "ERROR: unable to read image" << endl;
+    	return distMapQueue();
+    }
+
+	// Made static for speed; only used locally
+	static Unit cdata1[16384];
+	static Unit cdata2[16384];
+	static Unit cdata3[16384];
+
+	Image *resize_image;
+
+	/*
+	Initialize the image info structure and read an image.
+	 */
+	GetExceptionInfo(&exception);
+
+	resize_image = SampleImage(image, 128, 128, &exception);
+
+	DestroyImage(image);
+
+	DestroyExceptionInfo(&exception);
+
+	if (resize_image == (Image *) NULL) {
+		cerr << "ERROR: unable to resize image" << endl;
+    	return distMapQueue();
+	}
+
+    // store color value for basic channels
+	unsigned char rchan[16384];
+	unsigned char gchan[16384];
+	unsigned char bchan[16384];
+
+	GetExceptionInfo(&exception);
+
+	const PixelPacket *pixel_cache = AcquireImagePixels(resize_image, 0, 0, 128, 128, &exception);
+
+	for (int idx = 0; idx < 16384; idx++) {
+		rchan[idx] = pixel_cache->red;
+		gchan[idx] = pixel_cache->green;
+		bchan[idx] = pixel_cache->blue;
+		pixel_cache++;
+	}
+
+    DestroyImage(resize_image);
+
+	transformChar(rchan, gchan, bchan, cdata1, cdata2, cdata3);
+
+	DestroyExceptionInfo(&exception);
+
+	SigStruct *nsig = new SigStruct();
+
+	calcHaar(cdata1, cdata2, cdata3,
+			nsig->sig1, nsig->sig2, nsig->sig3, nsig->avgl);
+
+	return queryImgData(dbId, nsig->sig1, nsig->sig2, nsig->sig3,
+			nsig->avgl, numres, sketch, colorOnly, bizId);
+}
+
+//TODO add parm for query tweaking (sketch?)
+distMapQueue queryImgID(const int dbId, long int id, int numres, int sketch, bool colorOnly) {
+	/*query for images similar to the one that has this id
+	numres is the maximum number of results
+	 */
+
+	if (!validate_imgid(dbId, id)) {
+		cerr << "ERROR: image id (" << id << ") not found on given dbid (" << dbId << ") or dbid not existant" << endl ;
+		return distMapQueue();
+	};
+
+	return queryImgData(dbId, dbSpace[dbId]->sigs[id]->sig1, dbSpace[dbId]->sigs[id]->sig2, dbSpace[dbId]->sigs[id]->sig3,
+			dbSpace[dbId]->sigs[id]->avgl, numres, sketch, colorOnly, -1);
+}
+
+int removeID(const int dbId, long int id) {
+
+	if (!validate_imgid(dbId, id)) { cerr << "ERROR: image id (" << id << ") not found on given dbid (" << dbId << ") or dbid not existant" << endl ; return 0;};
+
+	delete dbSpace[dbId]->sigs[id];
+	dbSpace[dbId]->sigs.erase(id);
+	// remove id from each bucket it could be in
+	for (int c = 0; c < 3; c++)
+		for (int pn = 0; pn < 2; pn++)
+			for (int i = 0; i < 16384; i++)
+				dbSpace[dbId]->imgbuckets[c][pn][i].remove(id);
+
+	if(!delFromDb(id))
+		return 0;
+
+	return 1;
+}
+
+double calcAvglDiff(const int dbId, long int id1, long int id2) {
+
+	sigMap sigs = dbSpace[dbId]->sigs;
+
+	/* return the average luminance difference */
+
+	// are images on db ?
+	if (!validate_imgid(dbId, id1)) { cerr << "ERROR: image id (" << id1 << ") not found on given dbid (" << dbId << ") or dbid not existant" << endl ; return 0;};
+	if (!validate_imgid(dbId, id2)) { cerr << "ERROR: image id (" << id2 << ") not found on given dbid (" << dbId << ") or dbid not existant" << endl ; return 0;};
+
+	return fabs(sigs[id1]->avgl[0] - sigs[id2]->avgl[0])
+	+ fabs(sigs[id1]->avgl[1] - sigs[id2]->avgl[1])
+	+ fabs(sigs[id1]->avgl[2] - sigs[id2]->avgl[2]);
+}
+
+double calcDiff(const int dbId, long int id1, long int id2)
+{
+	/* use it to tell the content-based difference between two images
+	 */
+
+	if (!validate_dbid(dbId)) { cerr << "ERROR: database space not found (" << dbId << ")" << endl; return 0;}
+
+	if (!isImageOnDB(dbId,id1) ||
+			!isImageOnDB(dbId,id2)) {
+		cerr << "ERROR: image ids not found" << endl;
+		return 0;
+	}
+
+	sigMap sigs = dbSpace[dbId]->sigs;
+
+	double diff = calcAvglDiff(dbId, id1, id2);
+	Idx *sig1[3] = { sigs[id1]->sig1, sigs[id1]->sig2, sigs[id1]->sig3 };
+	Idx *sig2[3] = { sigs[id2]->sig1, sigs[id2]->sig2, sigs[id2]->sig3 };
+
+	for (int b = 0; b < NUM_COEFS; b++)
+		for (int c = 0; c < 3; c++)
+			for (int b2 = 0; b2 < NUM_COEFS; b2++)
+				if (sig2[c][b2] == sig1[c][b])
+					diff -= weights[0][imgBin[abs(sig1[c][b])]][c];
+
+	return diff;
+}
+
+int destroydb(const int dbId) {
+	if (!validate_dbid(dbId)) { cerr << "ERROR: database space not found (" << dbId << ")" << endl; return 0;}
+	throw string("not yet implemented");
+	return 1;
+}
+
+int resetdb(const int dbId) {
+
+	if (!validate_dbid(dbId)) { cerr << "ERROR: database space not found (" << dbId << ")" << endl; return 0;}
+    // first deallocate db memory
+
+	// deallocate all buckets
+
+    for (int c = 0; c < 3; c++)
+        for (int pn = 0; pn < 2; pn++)
+            for (int i = 0; i < 16384; i++) {
+                if (dbSpace[dbId])
+                    dbSpace[dbId]->imgbuckets[c][pn][i].clear();
+            }
+
+    //delete sigs
+    for (sigIterator it = dbSpace[dbId]->sigs.begin(); it != dbSpace[dbId]->sigs.end(); it++) {
+        delete (*it).second;
+    }
+
+	//TODO must also clear other stuff, like ids filter
+
+    dbSpace[dbId]->sigs.clear(); // this is making windows choke
+    // dbSpace[dbId]->sigs = sigMap();
+
+	//delete dbSpace[dbId];
+ 	//dbSpace.erase(dbId);
+
+ 	// finally the reset itself
+	dbSpace[dbId] = new dbSpaceStruct();
+
+	return 1;
+}
+
+long int getImgCount(const int dbId) {
+	if (!validate_dbid(dbId)) { cerr << "ERROR: database space not found (" << dbId << ")" << endl; return 0;}
+	return dbSpace[dbId]->sigs.size();
+}
+
+std::vector<int> getDBList() {
+	vector<int> ids;
+	for (dpspaceIterator it = dbSpace.begin(); it != dbSpace.end(); it++) {
+		ids.push_back((*it).first);
+	}
+	return ids;
+}
+
+std::vector<long int> getImgIdList(const int dbId) {
+	vector<long int> ids;
+
+	// TODO is there a faster way for getting a maps key list and returning a vector from it ?
+	for (sigIterator it = dbSpace[dbId]->sigs.begin(); it != dbSpace[dbId]->sigs.end(); it++) {
+		ids.push_back((*it).first);
+	}
+
+	return ids;
+}
+
+bool isValidDB(const int dbId) {
+	return dbSpace.count(dbId);
+}
+
+bool removedb(const int dbId) {
+	if (!validate_dbid(dbId)) { cerr << "ERROR: database space not found (" << dbId << ")" << endl; return false;}
+
+	if (resetdb(dbId)) {
+		dbSpace.erase(dbId);
+		return 1;
+	}
+	return 0;
+}

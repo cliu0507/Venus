@@ -194,9 +194,11 @@ long_list queryImgDataForThresFast(sigMap * tsigs, double *avgl, float thresd, i
 
 int addImage(const int dbId, const long int id, const char* filename);
 int addImageBiz(const int dbId, const int bizId, const long int id, const long int associatedId, const char* filename);
+int addImageFromDb(const int dbId, const int bizId, const long int id, const long int associatedId, 
+					const int width, const int height, char *sig1, char* sig2, char* sig3, char *avgl);
 int savedb(const int dbId, char* filename);
 int loaddb(const int dbId, char* filename);
-bool loadFromDb(int domainId);
+bool loadFromDb();
 int savealldbs(char* filename);
 int loadalldbs(char* filename);
 int removeID(const int dbId, long int id);
