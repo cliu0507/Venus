@@ -25,14 +25,22 @@ $(document).ready(function()
         //$( "#launcherPage" ).replaceWith(""); // We need to remove "#launcherpage" and let albumPage to be the first data- role = "page"            
         $.mobile.changePage("#albumPage");//We can also remove this operation, because albumPage is the first page in DOM
         console.log("DeviceReady and Change to albumPage");
-       $('#frmImport').submit(function(e)
-       {
+         
+      $('#frmImport').submit(function(e)
+    {
         e.preventDefault();
         //CHECK ERRORS ON USER SIDE, IF TRUE, END OPERATIONS.
-        
+        if (import_errors())
+        {
+            return false;
+        }
         import_db();
+        console.log("Send File to server side");
         return false;
-       });
+    });
+
+        
+        
         $("#gotologin").on("click" , function()
         {               
           $.mobile.changePage("#loginPage");
@@ -59,13 +67,11 @@ function import_db()
  {
         var formData = new FormData();
         jQuery.each($('#fileImportData')[0].files, function(i, file) {
-            formData.append('uploadFile-'+i, file);
+            formData.append('file', file);
         });
-        formData.append('action', 'ajax_handler_import');
-        formData.append('_ajax_nonce', importNonce);
 
         jQuery.ajax({
-            url: ajaxurl,
+            url: "http://192.168.56.101/gallery3/index.php/rest/item/61",
             type: 'POST',
             cache: false,
             contentType: false,
@@ -100,6 +106,26 @@ function import_db()
                 console.log("Ajax is finished.");
             }
         });  
+    }
+    
+    function import_errors()
+    {
+        if ($('#fileImportData').val() == '')
+        {
+            alert('No file(s) selected. Please choose a file to upload.');
+            return true;
+        }
+       /* if ($('#fileImportData').val() != '')
+        {
+            var ext = $('#fileImportData').val().split('.').pop().toLowerCase();
+            if($.inArray(ext, ['json']) == -1) 
+            {
+                alert('Invalid file type. Please choose a JSON file to upload.');
+                return true;
+            }
+        }
+        */
+        return false;
     }
 
 /*

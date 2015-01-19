@@ -72,8 +72,10 @@ class Rest_Controller extends Controller {
       default:
         $request->params = (object) $input->post();
         //$request->params = $_POST array
+        log::success("cliu",  "$_Post is ".$request->params);
         if (isset($_FILES["file"])) {
           $request->file = upload::save("file");
+          log::success("cliu",  "filepath is  ".$request->file);
           //upload::save("file") will return new file path, please refer to helpers/upload.php
           //in HTML, name of <input> should be "file" 
           system::delete_later($request->file);

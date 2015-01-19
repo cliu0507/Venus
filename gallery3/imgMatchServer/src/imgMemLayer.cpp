@@ -480,7 +480,7 @@ int addImage(const int dbId, const long int id, const char *filename) {
 
         if(getFaceDetectedImage(id, filename))
         {
-            char str[64], tmp[64], *temp;
+            char str[64], tmp[64];
 
             strcpy(tmp, "/var/www/gallery3/imgMatchServer/");
             sprintf(str,"%lu",id);
@@ -1114,6 +1114,24 @@ distMapQueue queryImgPath(const int dbId, char* path,int numres,int sketch, bool
 	ImageInfo *image_info;
 	image_info = CloneImageInfo((ImageInfo *) NULL);
 	(void) strcpy(image_info->filename, path);
+	
+#ifdef FACE_DETECTION_ENABLE
+        const char *face_detected_filename;
+
+        if(getFaceDetectedImage(0, image_info->filename))
+        {
+            char str[64], tmp[64];
+
+            strcpy(tmp, "/var/www/gallery3/imgMatchServer/");
+            sprintf(str,"%lu",id);
+            strcat(str, ".jpg");
+
+            face_detected_filename = strcat(tmp, str);
+        }
+
+        image_info->filename = face_detected_filename; 
+#endif
+
 	Image *image = ReadImage(image_info, &exception);
 	if (exception.severity != UndefinedException) CatchException(&exception);
 	DestroyImageInfo(image_info);

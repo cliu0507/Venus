@@ -429,7 +429,7 @@ class item_rest_Core {
 
   static function FindRating($result)
   {
-      log::success("cliu" , "path1");
+      //log::success("cliu" , "path1");
       $ratingArray = array();
       $orm3 = ORM::factory("item")->viewable();
       $columnlist = array(
@@ -457,7 +457,7 @@ class item_rest_Core {
               }
           }
       }
-      log::success("cliu" , "path2");
+      //log::success("cliu" , "path2");
       foreach ($result as $key1 => $member)
       {
         if($key1==="members")
@@ -470,14 +470,14 @@ class item_rest_Core {
           }
         }
       }
-      log::success("cliu" , "path3");
+      //log::success("cliu" , "path3");
       foreach ($result as $key1 => $member)
       {
         if($key1==="members")
         {          
           foreach($member as $key2 => $album)
           {            
-              log::success("cliu" , "path4");
+              //log::success("cliu" , "path4");
               foreach($ratingArray as $record => $rating)
               {
                   if($rating["itemsTable_item_id"] === $album["itemsTable_item_id"])
