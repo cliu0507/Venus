@@ -4,5 +4,9 @@
   <a href="<?= url::site("image_block/random/" . $item->id); ?>">
    <?= $item->thumb_img(array("class" => "g-thumbnail")) ?>
   </a>
+  <br>
+  <ul class="g-metadata">
+    <?= $theme->thumb_info($item) ?>
+  </ul>	
 </div>
 <? endforeach ?>

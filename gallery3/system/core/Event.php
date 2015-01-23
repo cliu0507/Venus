@@ -44,6 +44,7 @@ abstract class Event_Core {
 
 		// Add the event
 		Event::$events[$name][] = $callback;
+		// it may add new $callback in an array...$events[$name] = array("callback1", "callback2");
 
 		return TRUE;
 	}
@@ -110,6 +111,7 @@ abstract class Event_Core {
 		(
 			// Events before the key
 			array_slice(Event::$events[$name], 0, $key),
+			//array_slice — Extract a slice of the array
 			// New event callback
 			array($callback),
 			// Events after the key
@@ -215,6 +217,13 @@ abstract class Event_Core {
 
 		// The event has been run!
 		Event::$has_run[$name] = $name;
+
+		/*
+		  Example:
+		  Event::run('system.send_headers');
+		  call_user_func_array(array("Router", "find_uri"), $data);
+		  Will go to find Router::find_uri($data);
+		 */
 	}
 
 	/**

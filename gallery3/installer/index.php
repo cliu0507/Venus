@@ -20,6 +20,8 @@
 define("DOCROOT", dirname(dirname(__FILE__)) . "/");
 define("VARPATH", DOCROOT . "var/");
 define("SYSPATH", "DEFINED_TO_SOMETHING_SO_THAT_WE_CAN_KEEP_CONSISTENT_PREAMBLES_IN_THE_INSTALLER");
+//dirname — Returns parent directory's path
+
 
 if (version_compare(PHP_VERSION, "5.2.3", "<")) {
   print "Gallery 3 requires PHP 5.2.3 or newer.\n";
@@ -30,6 +32,8 @@ if (version_compare(PHP_VERSION, "5.2.3", "<")) {
 // into generated URLs and forms, but it doesn't interoperate will with Gallery's
 // Ajax code.
 ini_set("session.use_trans_sid", false);
+//ini_set — Sets the value of a configuration option
+//session.use_trans_sid whether transparent sid support is enabled or not. Defaults to 0 (disabled).
 
 require(DOCROOT . "installer/installer.php");
 if (PHP_SAPI == "cli") {

@@ -304,7 +304,7 @@ class gallery_event_Core {
           $my_show_menu->append(Menu::factory("link")
                         ->id("my_album")
                         ->label(t("My Album"))
-                        ->url(item::root()->url()));
+                        ->url(url::site("albums/myalbum")));
 
           $my_show_menu->append(Menu::factory("link")
                         ->id("my_challenge")

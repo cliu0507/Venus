@@ -85,6 +85,7 @@ abstract class Kohana_Core {
 
 		// Set the default charset for mb_* functions
 		mb_internal_encoding(Kohana::CHARSET);
+		//mb_internal_encoding  Set/Get internal character encoding
 
 		if (Kohana_Config::instance()->loaded() === FALSE)
 		{
@@ -93,7 +94,7 @@ abstract class Kohana_Core {
 		}
 
 		if (Kohana::$cache_lifetime = Kohana::config('core.internal_cache'))
-		{
+		{  // Kohana::$cache_lifetime = FALSE
 			// Are we using encryption for caches?
 			Kohana::$internal_cache_encrypt	= Kohana::config('core.internal_cache_encrypt');
 
@@ -108,6 +109,7 @@ abstract class Kohana_Core {
 			// Set the directory to be used for the internal cache
 			if ( ! Kohana::$internal_cache_path = Kohana::config('core.internal_cache_path'))
 			{
+				//$config["internal_cache_path"] = VARPATH . "tmp/";
 				Kohana::$internal_cache_path = APPPATH.'cache/';
 			}
 
@@ -124,6 +126,7 @@ abstract class Kohana_Core {
 
 		// Start output buffering
 		ob_start(array('Kohana', 'output_buffer'));
+		//Kohana::output_buffer is a callback function
 
 		// Save buffering level
 		Kohana::$buffer_level = ob_get_level();
@@ -133,11 +136,12 @@ abstract class Kohana_Core {
 
 		// Register a shutdown function to handle system.shutdown events
 		register_shutdown_function(array('Kohana', 'shutdown'));
-
+    // Kohana::shutdown is callback function
 		// Send default text/html UTF-8 header
 		header('Content-Type: text/html; charset='.Kohana::CHARSET);
+		//charset='utf-8'
 
-		// Load i18n
+		// Load i18n, it is about multilingual process
 		new I18n;
 
 		// Enable exception handling
@@ -166,7 +170,7 @@ abstract class Kohana_Core {
 
 		// register_globals is enabled
 		if (ini_get('register_globals'))
-		{
+		{// 'register_globals' doesn't exist
 			if (isset($_REQUEST['GLOBALS']))
 			{
 				// Prevent GLOBALS override attacks
@@ -181,7 +185,7 @@ abstract class Kohana_Core {
 
 			// This loop has the same effect as disabling register_globals
 			foreach (array_diff(array_keys($GLOBALS), $preserve) as $key)
-			{
+			{//$GLOBALS  References all variables available in global scope
 				global $$key;
 				$$key = NULL;
 
@@ -204,7 +208,7 @@ abstract class Kohana_Core {
 		Event::add('system.404', array('Kohana_404_Exception', 'trigger'));
 
 		if (Kohana::config('core.enable_hooks') === TRUE)
-		{
+		{// now, Kohana::config('core.enable_hooks') === TRUE
 			// Find all the hook files
 			$hooks = Kohana::list_files('hooks', TRUE);
 
@@ -367,6 +371,16 @@ abstract class Kohana_Core {
 			Kohana::$include_paths[] = SYSPATH;
 
 			Kohana::$include_paths_hash = md5(serialize(Kohana::$include_paths));
+			
+			/*
+			$include_paths = array(
+			 '0' => MODPATH . "forge",
+      '1' => MODPATH . "kohana23_compat",
+      '2' => MODPATH . "gallery", 
+			'3' => SYSPATH
+			)
+			
+			*/
 		}
 
 		return Kohana::$include_paths;
@@ -574,6 +588,7 @@ abstract class Kohana_Core {
 		{
 			// Fetch memory usage in MB
 			$memory = function_exists('memory_get_usage') ? (memory_get_usage() / 1024 / 1024) : 0;
+			//memory_get_usage  Returns the amount of memory allocated to PHP
 
 			// Fetch benchmark for page execution time
 			$benchmark = Benchmark::get(SYSTEM_BENCHMARK.'_total_execution');
@@ -601,7 +616,7 @@ abstract class Kohana_Core {
 		}
 
 		if ($level = Kohana::config('core.output_compression') AND ini_get('output_handler') !== 'ob_gzhandler' AND (int) ini_get('zlib.output_compression') === 0)
-		{
+		{// output_handler is in php.ini
 			if ($compress = request::preferred_encoding(array('gzip','deflate'), TRUE))
 			{
 				if ($level < 1 OR $level > 9)
@@ -653,7 +668,7 @@ abstract class Kohana_Core {
 			return TRUE;
 
 		if (($suffix = strrpos($class, '_')) > 0)
-		{
+		{//strrpos  Find the position of the last occurrence of a substring in a string
 			// Find the class suffix
 			$suffix = substr($class, $suffix + 1);
 		}
@@ -707,6 +722,7 @@ abstract class Kohana_Core {
 
 		if ($filename = Kohana::find_file($type, Kohana::config('core.extension_prefix').$class))
 		{
+			//eg : MY_$class
 			// Load the class extension
 			require $filename;
 		}
@@ -726,6 +742,7 @@ abstract class Kohana_Core {
 
 			// Transparent class extensions are handled using eval. This is
 			// a disgusting hack, but it gets the job done.
+			// make $extension = 'class '.$class.' extends '.$class.'_Core { }' to be PHP code and include int
 			eval($extension);
 		}
 
@@ -769,6 +786,7 @@ abstract class Kohana_Core {
 
 		// Load include paths
 		$paths = Kohana::$include_paths;
+		//$include_paths is an array, contains SYSPATH and some other paths
 
 		// Nothing found, yet
 		$found = NULL;
@@ -846,6 +864,7 @@ abstract class Kohana_Core {
 			{
 				// Recursively get and merge all files
 				$files = array_merge($files, Kohana::list_files($directory, $recursive, $ext, $path.$directory));
+				//MODPATH. "gallery/".hooks
 			}
 		}
 		else

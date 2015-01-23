@@ -64,6 +64,7 @@ class Albums_Controller extends Items_Controller {
     $template->set_global(
       array("page" => $page,
             "page_title" => null,
+		    "page_category" => 'Home',
             "max_pages" => $max_pages,
             "page_size" => $page_size,
             "item" => $album,
@@ -78,6 +79,61 @@ class Albums_Controller extends Items_Controller {
     item::set_display_context_callback("Albums_Controller::get_display_context");
   }
 
+  public function myalbum() {
+	$album = ORM::factory("item", 1);
+	
+    access::required("view", $album);
+
+    $page_size = module::get_var("gallery", "page_size", 9);
+    $input = Input::instance();
+    $show = $input->get("show");
+
+    if ($show) {
+      $child = ORM::factory("item", $show);
+      $index = item::get_position($child);
+      if ($index) {
+        $page = ceil($index / $page_size);
+        if ($page == 1) {
+          url::redirect($album->abs_url());
+        } else {
+          url::redirect($album->abs_url("page=$page"));
+        }
+      }
+    }
+
+	$cur_user = identity::active_user();
+	
+    $page = $input->get("page", "1");
+    $children_count = $album->viewable()->children_count(array(array("owner_id", "=", $cur_user->id)));
+    $offset = ($page - 1) * $page_size;
+    $max_pages = max(ceil($children_count / $page_size), 1);
+
+    // Make sure that the page references a valid offset
+    if ($page < 1) {
+      url::redirect($album->abs_url());
+    } else if ($page > $max_pages) {
+      url::redirect($album->abs_url("page=$max_pages"));
+    }
+
+    $template = new Theme_View("page.html", "collection", "album");
+    $template->set_global(
+      array("page" => $page,
+            "page_title" => null,
+			"page_category" => 'MyAlbum',
+            "max_pages" => $max_pages,
+            "page_size" => $page_size,
+            "item" => $album,
+            "children" => $album->viewable()->children($page_size, $offset, array(array("owner_id", "=", $cur_user->id))),
+            "parents" => $album->parents()->as_array(), // view calls empty() on this
+            "breadcrumbs" => Breadcrumb::array_from_item_parents($album),
+            "children_count" => $children_count));
+    $template->content = new View("album.html");
+    $album->increment_view_count();
+
+    print $template;
+    item::set_display_context_callback("Albums_Controller::get_display_context");
+  }
+  
   static function get_display_context($item) {
     $where = array(array("type", "!=", "album"));
     $position = item::get_position($item, $where);

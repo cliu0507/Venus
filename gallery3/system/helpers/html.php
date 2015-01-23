@@ -37,6 +37,7 @@ class html_Core {
 	 */
 	public static function anchor($uri, $title = NULL, $attributes = NULL, $protocol = NULL, $escape_title = FALSE)
 	{
+		//$url = "http://localhost/gallery3/installer"
 		if ($uri === '')
 		{
 			$site_url = url::base(FALSE);
@@ -58,6 +59,7 @@ class html_Core {
 			}
 
 			$site_url = $uri;
+			//$site_url =$url = "http://localhost/gallery3/installer"
 		}
 
 		return

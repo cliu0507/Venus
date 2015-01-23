@@ -75,7 +75,7 @@ abstract class Config_Driver {
 	{
 
 		if (($cache_setting = $config['internal_cache']) !== FALSE)
-		{
+		{// In this case, 'internal_cache' is set to FALSE
 			$this->cache_lifetime = $cache_setting;
 			// Restore the cached configuration
 			$this->config = $this->load_cache();

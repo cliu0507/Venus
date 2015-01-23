@@ -9,6 +9,7 @@
  */
 
 class Kohana_Exception_Core extends Exception {
+	//Kohana_Exception_Core extends standard PHP Exception Class
 
 	public static $enabled = FALSE;
 
@@ -56,6 +57,7 @@ class Kohana_Exception_Core extends Exception {
 		if ( ! Kohana_Exception::$enabled)
 		{
 			set_exception_handler(array('Kohana_Exception', 'handle'));
+			//set_exception_handler  Sets a user-defined exception handler function
 
 			Kohana_Exception::$enabled = TRUE;
 		}

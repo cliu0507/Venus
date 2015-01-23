@@ -41,7 +41,7 @@ class url_Core {
 			$protocol = Kohana::config('core.site_protocol');
 		}
 
-		// Load the site domain
+		// Load the site domain, in this case site_domain = null
 		$site_domain = (string) Kohana::config('core.site_domain', TRUE);
 
 		if ($protocol == FALSE)
@@ -65,6 +65,7 @@ class url_Core {
 				$port = $_SERVER['SERVER_PORT'];
 				$port = ((($port == 80) && ($protocol == 'http')) || (($port == 443) && ($protocol == 'https')) || !$port) ? '' : ":$port";
 				$base_url = $protocol.'://'.($_SERVER['SERVER_NAME']?($_SERVER['SERVER_NAME'].$port):$_SERVER['HTTP_HOST']).$site_domain;
+				//$base_url = http://localhost/gallery3
 			}
 			else
 			{
@@ -77,10 +78,12 @@ class url_Core {
 		{
 			// Append the index page
 			$base_url = $base_url.$index;
+			// $index ==false in this case
 		}
 
 		// Force a slash on the end of the URL
 		return rtrim($base_url, '/').'/';
+		//http://localhost/gallery3/
 	}
 
 	/**
@@ -233,7 +236,9 @@ class url_Core {
 		}
 		else
 		{
+			//$uri = http://localhost/gallery3/installer
 			$output = '<p>'.html::anchor($uri).'</p>';
+			//$output = '<p><a href="http://localhost/gallery3/installer"> http://localhost/gallery3/installer<a><p>';
 		}
 
 		// Run the redirect event
@@ -253,12 +258,17 @@ class url_Core {
 		{
 			header('HTTP/1.1 '.$method.' '.$codes[$method]);
 			header('Location: '.$uri);
+			// header('HTTP/1.1 302 FOUND');
+			// header('Location: http://localhost/gallery3/installer')
 		}
 
 		// We are about to exit, so run the send_headers event
 		Event::run('system.send_headers');
 
 		exit('<h1>'.$method.' - '.$codes[$method].'</h1>'.$output);
+		//exit  Output a message and terminate the current script
+		// <h1>302 - Found</h1><p><a href="http://localhost/gallery3/installer"> http://localhost/gallery3/installer<a><p>
+		//Web Broswer is invited by a response with this code to make a second, otherwise identical, request to the new URL specified in the Location field
 	}
 
 } // End url

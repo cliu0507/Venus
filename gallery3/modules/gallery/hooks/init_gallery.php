@@ -22,6 +22,7 @@
 // and send users to the installer.
 if (!file_exists(VARPATH . "database.php")) {
   url::redirect(url::abs_file("installer"));
+  //url::abs_file("installer") = http://localhost/gallery3/installer
 }
 
 // Simple and cheap test to make sure that the database config is ok.  Do this before we do

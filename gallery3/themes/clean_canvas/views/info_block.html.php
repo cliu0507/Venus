@@ -1,5 +1,11 @@
 <?php defined("SYSPATH") or die("No direct script access.") ?>
 <ul class="g-metadata">
+  <? if ($item->id == 1): ?>
+  <li>
+    <strong class="caption"><?= t("") ?></strong>
+     <?= nl2br(html::purify($item->description)) ?>
+  </li>
+  <? else: ?>
   <li>
     <strong class="caption"><?= t("Title:") ?></strong>
     <?= html::purify($item->title) ?>
@@ -43,5 +49,6 @@
     <strong class="caption"><?= t("Captured:") ?></strong>
     <?= date("M j, Y H:i:s", $item->captured)?>
   </li>
+  <? endif ?>
   <? endif ?>
 </ul>

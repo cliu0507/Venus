@@ -28,10 +28,12 @@ Shadowbox.init({
 <? // @todo Set hover on AlbumGrid list items for guest users ?>
 <div id="g-info">
   <?= $theme->album_top() ?>
-  <h1><?= html::purify($item->title) ?></h1>
-  <? if ($item->id == 1): ?>
-  <div class="g-description"><?= nl2br(html::purify($item->description)) ?></div>
-  <? elseif (access::can("edit", $item)): ?>
+	<? if ($page_category == 'MyAlbum'): ?>
+	  <h1><?= html::purify('My Albums') ?></h1>
+	<? else: ?>
+      <h1><?= html::purify($item->title) ?></h1>
+	<? endif ?>
+  <? if ($item->id != 1 && access::can("edit", $item)): ?>
     <img id='g-img-albumedit' width="15" height="15" alt="<?= t("Album actions")->for_html_attr() ?>"
          src="<?= $theme->url("images/canvaslogo.png") ?>" onclick='show_popup_albumeditmenu()'/>
     <ul id='g-popup-albumedit' style='display:none' onmouseout='hide_popup_albumeditmenu()'>
