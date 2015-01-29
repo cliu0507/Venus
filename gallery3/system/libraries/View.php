@@ -82,6 +82,9 @@ class View_Core {
 			// Load the filename and set the content type
 			$this->kohana_filename = Kohana::find_file('views', $name, TRUE);
 			$this->kohana_filetype = EXT;
+			//log::success("cliu", "filename is" . $this->kohana_filename);
+			//$temppath = Kohana::include_paths();
+			//log::success("cliu" , "include_path is" . serialize($temppath));
 		}
 		else
 		{
@@ -221,6 +224,7 @@ class View_Core {
 	 */
 	public function __toString()
 	{
+		//This is the reason why print $this can outputting html buffer to webserver
 		try
 		{
 			return $this->render();
@@ -311,6 +315,7 @@ class View_Core {
 		ob_start();
 
 		// Import the view variables to local namespace
+		// extract — Import variables into the current symbol table from an array, so that including html can use the variables
 		extract($kohana_input_data, EXTR_SKIP);
 
 		try

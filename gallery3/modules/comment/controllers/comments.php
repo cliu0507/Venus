@@ -111,7 +111,7 @@ class Comments_Controller extends Controller {
         "text" => "Install rating module successfully."));
     } catch (Database_Exception $e) {
       json::reply(array("result" => "error",
-        "text" => "Failed to install rating module: ") . Database_Exception::text($e));
+        "text" => "Failed to install rating database: ") . Database_Exception::text($e));
     }
   }
 }

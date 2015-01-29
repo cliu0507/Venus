@@ -22,6 +22,10 @@ Shadowbox.init({
  function hide_popup_albumeditmenu(){
    document.getElementById("g-popup-albumedit").style.display="none";
  }
+ $(function() {
+    $( "#menu" ).menu();
+  });
+ 
 </script>
 <? endif ?>
 
@@ -34,14 +38,29 @@ Shadowbox.init({
       <h1><?= html::purify($item->title) ?></h1>
 	<? endif ?>
   <? if ($item->id != 1 && access::can("edit", $item)): ?>
-    <img id='g-img-albumedit' width="15" height="15" alt="<?= t("Album actions")->for_html_attr() ?>"
-         src="<?= $theme->url("images/canvaslogo.png") ?>" onclick='show_popup_albumeditmenu()'/>
-    <ul id='g-popup-albumedit' style='display:none' onmouseout='hide_popup_albumeditmenu()'>
-        <li>Edit Album</li>
-        <li>Delete Album</li>
-    </ul>
+    <!--<td><input type="button" value="action" onclick='show_popup_albumeditmenu()'></td>
+    <td id='g-popup-albumedit' style='display:none' onmouseout='hide_popup_albumeditmenu()'>
+        <td><a href="#anylink" class="ui-btn">Edit</a></td>
+        <td><a href="#anylink" class="ui-btn">Delete</a></td>
+        <td><a href="#anylink" class="ui-btn">Add</a></td>
+    </td>
+    -->
   <? endif ?>
 </div>
+<? if ($item->id != 1 && access::can("edit", $item)): ?>
+<ul id="menu" style="width:25%">
+  <li class="ui-state-disabled">Options</li>
+  <li>Edit this album
+  <ul style="width:100%">
+      <li>Add a photo</li>
+      <li>Delete a photo</li>
+  </ul>
+  </li>
+  <li>Delete this album</li>
+  <li>Add new album</li>
+  <li>Organize albums<li>
+</ul>
+<? endif ?>
 
 <ul id="g-album-grid" class="ui-helper-clearfix">
 <? if (count($children)): ?>

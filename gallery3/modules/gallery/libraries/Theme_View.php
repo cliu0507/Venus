@@ -30,7 +30,7 @@ class Theme_View_Core extends Gallery_View {
    */
   public function __construct($name, $page_type, $page_subtype) {
     parent::__construct($name);
-
+    //log::success("cliu", "path 1");
     $this->theme_name = module::get_var("gallery", "active_site_theme");
     if (identity::active_user()->admin) {
       $theme_name = Input::instance()->get("theme");
@@ -49,6 +49,7 @@ class Theme_View_Core extends Gallery_View {
                             "page_subtype" => $page_subtype,
                             "page_title" => null));
 
+  // We can use $this->global_data[$key] to get the values;
     if (module::get_var("gallery", "maintenance_mode", 0)) {
       if (identity::active_user()->admin) {
         message::warning(t("This site is currently in maintenance mode.  Visit the <a href=\"%maintenance_url\">maintenance page</a>", array("maintenance_url" => url::site("admin/maintenance"))));

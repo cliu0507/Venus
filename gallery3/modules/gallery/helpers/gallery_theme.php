@@ -130,6 +130,11 @@ class gallery_theme_Core {
   }
 
   static function credits() {
+    
+    
+    return "<li class=\'g-first'>Copyright(c) 2014-2015 by Venus, Inc. </li>";
+    
+    /*
     $version_string = SafeString::of_safe_html(
       '<bdo dir="ltr">Gallery ' . gallery::version_string() . '</bdo>');
     return "<li class=\"g-first\">" .
@@ -137,6 +142,7 @@ class gallery_theme_Core {
         array("url" => "http://galleryproject.org",
               "gallery_version" => $version_string)) .
       "</li>";
+      */
   }
 
   static function admin_credits() {

@@ -20,6 +20,7 @@
 class Albums_Controller extends Items_Controller {
   public function index() {
     $this->show(ORM::factory("item", 1));
+    //log::success("cliu", "will run index() method");
   }
 
   public function show($album) {
@@ -34,7 +35,8 @@ class Albums_Controller extends Items_Controller {
     $page_size = module::get_var("gallery", "page_size", 9);
     $input = Input::instance();
     $show = $input->get("show");
-
+    //log::success("cliu", "show is ".$show );
+    //It is NULL
     if ($show) {
       $child = ORM::factory("item", $show);
       $index = item::get_position($child);
@@ -49,18 +51,24 @@ class Albums_Controller extends Items_Controller {
     }
 
     $page = $input->get("page", "1");
+    //log::success("cliu", "page is ".$page );
+    
     $children_count = $album->viewable()->children_count();
+    //log::success("cliu", "children_count is ".$children_count );
+    
     $offset = ($page - 1) * $page_size;
     $max_pages = max(ceil($children_count / $page_size), 1);
-
+     
     // Make sure that the page references a valid offset
     if ($page < 1) {
       url::redirect($album->abs_url());
     } else if ($page > $max_pages) {
       url::redirect($album->abs_url("page=$max_pages"));
     }
-
+   //$kohana_include_paths = Kohana::include_paths();
+   //log::success("cliu", $kohana_include_paths);
     $template = new Theme_View("page.html", "collection", "album");
+
     $template->set_global(
       array("page" => $page,
             "page_title" => null,

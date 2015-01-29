@@ -5,6 +5,7 @@
    class="g-button ui-corner-all ui-icon-left ui-state-default" style="right:80px;height:25px;">
   <span class="ui-icon ui-icon-comment"></span>
   <?= t("Add a comment") ?>
+  <?= t("test comment") ?>
 </a>
 <div align="left" class="g-rating-block">
     <div class="tooltip" style="position:absolute;">
@@ -46,11 +47,11 @@
     <li id="g-comment-<?= $comment->id ?>">
       <p class="g-author">
         <? if ($comment->author()->guest): ?>
-        <?= t('on %date %name said',
+        <?= t('%date %name said',
             array("date" => gallery::date_time($comment->created),
                   "name" => html::clean($comment->author_name()))); ?>
         <? else: ?>
-        <?= t('on %date <a href="%url">%name</a> said',
+        <?= t('%date <a href="%url">%name</a> said',
               array("date" => gallery::date_time($comment->created),
                     "url" => user_profile::url($comment->author_id),
                     "name" => html::clean($comment->author_name()))); ?>

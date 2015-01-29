@@ -20,7 +20,6 @@ abstract class Kohana_Core {
 
 	// The singleton instance of the controller
 	public static $instance;
-
 	// Output buffering level
 	protected static $buffer_level;
 
@@ -139,6 +138,7 @@ abstract class Kohana_Core {
     // Kohana::shutdown is callback function
 		// Send default text/html UTF-8 header
 		header('Content-Type: text/html; charset='.Kohana::CHARSET);
+		//This is to prepare for the return html content to broswer side!
 		//charset='utf-8'
 
 		// Load i18n, it is about multilingual process
@@ -297,9 +297,13 @@ abstract class Kohana_Core {
 
 			try
 			{
-				// Load the controller method
+				// Load the controller method , in this case, $method = myalbum();
+				//log::success("cliu", "Router::Method is ". Router::$method);
+				//log::success("cliu", "Router::arguments is ". Router::$arguments);
+				//log::success("cliu", "Router::current_uri is ". Router::$current_uri);
+				//log::success("cliu", "Router::Controller_Path is ". Router::$controller_path);
 				$method = $class->getMethod(Router::$method);
-
+        //log::success("cliu", "Method Found is ". serialize($method));
 				// Method exists
 				if (Router::$method[0] === '_')
 				{
@@ -318,9 +322,9 @@ abstract class Kohana_Core {
 			}
 			catch (ReflectionException $e)
 			{
-				// Use __call instead
+				// Use __call instead, but we don't use this part!
 				$method = $class->getMethod('__call');
-
+        //log:success("cliu", "No_Method Found");
 				// Use arguments in __call format
 				$arguments = array(Router::$method, Router::$arguments);
 			}
@@ -333,7 +337,8 @@ abstract class Kohana_Core {
 
 			// Execute the controller method
 			$method->invokeArgs($controller, $arguments);
-
+      //$controller->{Router::$method}($arguments);  This sentence can also execute controller's method
+			
 			// Controller method has been executed
 			Event::run('system.post_controller');
 
@@ -382,10 +387,11 @@ abstract class Kohana_Core {
 			
 			*/
 		}
-
 		return Kohana::$include_paths;
+
 	}
 
+ 
 	/**
 	 * Get a config item or group proxies Kohana_Config.
 	 *
@@ -787,7 +793,7 @@ abstract class Kohana_Core {
 		// Load include paths
 		$paths = Kohana::$include_paths;
 		//$include_paths is an array, contains SYSPATH and some other paths
-
+        //log::success("cliu", $paths);
 		// Nothing found, yet
 		$found = NULL;
 

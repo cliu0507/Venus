@@ -21,7 +21,38 @@
  */
 class Challenge_Controller extends Controller {
   public function index() {
-      
+      $this->show(ORM::factory("album_challenge")->find_all());
+  }
+  
+  public function show($challenges) {
+    if (!is_object($challenges)) {
+      throw new Kohana_404_Exception();
+    }
+    
+    $input = Input::instance();
+    
+    $page_size = module::get_var("gallery", "page_size", 9);
+
+    $page = $input->get("page", "1");
+    $children_count = $challenges->count();
+    $offset = ($page - 1) * $page_size;
+    $max_pages = max(ceil($children_count / $page_size), 1);
+    
+    $template = new Theme_View("page.html", "collection", "album");
+    $template->set_global(
+      array("page" => $page,
+            "page_title" => "Fashion Challenge",
+		    "page_category" => 'Home',
+            "max_pages" => $max_pages,
+            "page_size" => $page_size,
+            "item" => NULL,
+            "children" => $challenges,
+            //"parents" => $album->parents()->as_array(), // view calls empty() on this
+            //"breadcrumbs" => Breadcrumb::array_from_item_parents($album),
+            "children_count" => $children_count * 2));
+    $template->content = new View("challenge.html");
+
+    print $template;
   }
   
   public function challenge_album($album_id) {
@@ -74,5 +105,29 @@ class Challenge_Controller extends Controller {
       ->where("owner_id", "=", $cur_user->id)
       ->order_by("items.created", "DESC")
       ->find_all();
+  }
+  
+  public function installchallenge() {
+    try {
+      $db = Database::instance();
+      $db->query("CREATE TABLE IF NOT EXISTS {album_challenges} (
+        `id` int(11) NOT NULL AUTO_INCREMENT,
+        `left_album_id` int(11) DEFAULT NULL,
+        `left_album_vote` int(11) DEFAULT NULL,
+        `right_album_id` int(11) DEFAULT NULL,
+        `right_album_vote` int(11) DEFAULT NULL,
+        `start_timestamp` int(11) DEFAULT NULL,
+        `active` int(1) DEFAULT NULL,
+        `modify_timestamp` int(11) DEFAULT NULL,
+        `category` int(11) DEFAULT '1',
+        PRIMARY KEY (`id`)
+      ) DEFAULT CHARSET=utf8");
+      
+      json::reply(array("result" => "success",
+        "text" => "Install chanllenge database successfully."));
+    } catch (Database_Exception $e) {
+      json::reply(array("result" => "error",
+        "text" => "Failed to install challenge database: ") . Database_Exception::text($e));
+    }
   }
 }

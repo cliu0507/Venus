@@ -27,17 +27,17 @@ class comment_Core {
   static function get_add_form($item) {
     $form = new Forge("comments/create/{$item->id}", "", "post", array("id" => "g-comment-form"));
     $group = $form->group("add_comment")->label(t("Add comment"));
-    $group->input("name")
-      ->label(t("Name"))
+    $group->hidden("name")
+      /*->label(t("Name"))*/
       ->id("g-author")
       ->error_messages("required", t("You must enter a name for yourself"));
-    $group->input("email")
-      ->label(t("Email (hidden)"))
+    $group->hidden("email")
+/*      ->label(t("Email (hidden)"))*/
       ->id("g-email")
       ->error_messages("required", t("You must enter a valid email address"))
       ->error_messages("invalid", t("You must enter a valid email address"));
-    $group->input("url")
-      ->label(t("Website (hidden)"))
+    $group->hidden("url")
+/*      ->label(t("Website (hidden)"))*/
       ->id("g-url")
       ->error_messages("url", t("You must enter a valid url"));
     $group->textarea("text")
@@ -56,9 +56,9 @@ class comment_Core {
     $active = identity::active_user();
     if (!$active->guest) {
       $group = $form->add_comment;
-      $group->inputs["name"]->value($active->full_name)->disabled("disabled");
-      $group->email->value($active->email)->disabled("disabled");
-      $group->url->value($active->url)->disabled("disabled");
+      $group->hidden["name"]->value($active->full_name);//->disabled("disabled");
+      $group->hidden["email"]->value($active->email);//->disabled("disabled");
+      $group->hidden["url"]->value($active->url);//->disabled("disabled");
     }
     return $form;
   }

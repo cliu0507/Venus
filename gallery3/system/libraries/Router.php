@@ -49,9 +49,9 @@ class Router_Core {
 
 		// Default route status
 		$default_route = FALSE;
-
+     
 		if (Router::$current_uri === '')
-		{
+		{// If just type localhost/gallery3 in address bar, then $current_uri= NULL
 			// Make sure the default route is set
 			if (empty(Router::$routes['_default']))
 				throw new Kohana_Exception('Please set a default route in config/routes.php.');
@@ -63,12 +63,18 @@ class Router_Core {
 			$default_route = TRUE;
 		}
 
+     //$current_uri = gallery3/index.php/albums/myalbum
 		// Remove all dot-paths from the URI, they are not valid
+		
+		
+		//log::success("cliu", "Router::uri1 is ". Router::$current_uri);
 		Router::$current_uri = preg_replace('#\.[\s./]*/#', '', Router::$current_uri);
-
+     //log::success("cliu", "Router::uri2 is ". Router::$current_uri);
+		
 		// At this point routed URI and current URI are the same
 		Router::$routed_uri = Router::$current_uri = trim(Router::$current_uri, '/');
-
+		
+      //Router::$routed_uri = Router::$current_uri = gallery3/albums/myalbum
 		if ($default_route === TRUE)
 		{
 			Router::$complete_uri = Router::$query_string;
@@ -86,9 +92,10 @@ class Router_Core {
 			{
 				// Custom routing
 				Router::$routed_uri = Router::routed_uri(Router::$current_uri);
+				//$current_uri = gallery/index.php
 			}
 		}
-
+     //It seems that Router::$routed_uri is like this format: gallery3/albums/myalbum
 		// Explode the routed segments by slashes
 		Router::$rsegments = explode('/', Router::$routed_uri);
 
@@ -103,13 +110,20 @@ class Router_Core {
 		{
 			// Add the segment to the search path
 			$controller_path .= $segment;
+      //$controller_path = gallery3
 
 			$found = FALSE;
 			foreach ($paths as $dir)
 			{
 				// Search within controllers only
 				$dir .= 'controllers/';
-
+        /*
+        $dir.$controller_path = $paths/controllers/gallery3
+        $dir.$controller_path = $paths/controllers/albums 
+        
+        Found in modules/gallery/controllers/albums
+        
+        */
 				if (is_dir($dir.$controller_path) OR is_file($dir.$controller_path.EXT))
 				{
 					// Valid path
@@ -118,13 +132,15 @@ class Router_Core {
 					// The controller must be a file that exists with the search path
 					if ($c = str_replace('\\', '/', realpath($dir.$controller_path.EXT))
 					    AND is_file($c) AND strpos($c, $dir) === 0)
+					    //realpath($dir.$controller_path.EXT = $paths/controllers/albums.php
 					{
 						// Set controller name
 						Router::$controller = $segment;
+						//Router::$controller = albums;
 
 						// Change controller path
 						Router::$controller_path = $c;
-
+            //$paths/controllers/albums.php
 						// Set the method segment
 						$method_segment = $key + 1;
 
@@ -133,7 +149,15 @@ class Router_Core {
 					}
 				}
 			}
-
+			/* $rsegments = array(
+			    [0] => gallery3,
+			    [1] => albums,
+			    [2] => myalbum,
+			
+			);
+			
+		 $method_segment = 2
+       */
 			if ($found === FALSE)
 			{
 				// Maximum depth has been reached, stop searching
@@ -146,12 +170,12 @@ class Router_Core {
 
 		if ($method_segment !== NULL AND isset(Router::$rsegments[$method_segment]))
 		{
-			// Set method
+			// Set method = myalbum in this case
 			Router::$method = Router::$rsegments[$method_segment];
 
 			if (isset(Router::$rsegments[$method_segment + 1]))
 			{
-				// Set arguments
+				// Set arguments , in this case, argument = null
 				Router::$arguments = array_slice(Router::$rsegments, $method_segment + 1);
 			}
 		}
@@ -218,6 +242,8 @@ class Router_Core {
 			{
 				// PATH_INFO is empty during requests to the front controller
 				Router::$current_uri = $_SERVER['PHP_SELF'];
+				// 192.168.56.101/gallery3/index.php
+				// Router::$current_uri = gallery3/index.php
 			}
 
 			if (isset($_SERVER['SCRIPT_NAME']) AND $_SERVER['SCRIPT_NAME'])
@@ -226,8 +252,10 @@ class Router_Core {
 				// PATH_INFO may be formatted for ISAPI instead of CGI on IIS
 				if (strncmp(Router::$current_uri, $_SERVER['SCRIPT_NAME'], strlen($_SERVER['SCRIPT_NAME'])) === 0)
 				{
+					//strncmp  Binary safe string comparison of the first n characters
 					// Remove the front controller from the current uri
 					Router::$current_uri = (string) substr(Router::$current_uri, strlen($_SERVER['SCRIPT_NAME']));
+					//Router::$current_uri = Null
 				}
 			}
 		}

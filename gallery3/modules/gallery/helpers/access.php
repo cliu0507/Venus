@@ -79,9 +79,10 @@ class access_Core {
    * @return boolean
    */
   static function can($perm_name, $item) {
-    /* [dfw]: added for challenge album permission */
+    /* FIXME: permission control for album chanllenge */
     if($perm_name == 'challengealbum') {
-        return access::can_challenge(identity::active_user(), $item);
+        //return access::can_challenge(identity::active_user(), $item);
+        return TRUE;
     }
     else {
         return access::user_can(identity::active_user(), $perm_name, $item);

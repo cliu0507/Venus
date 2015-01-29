@@ -21,9 +21,11 @@ class Items_Controller extends Controller {
   public function __call($function, $args) {
     $item = ORM::factory("item", (int)$function);
     if (!$item->loaded()) {
+    	//$item->loaded() is to make sure whether has found a record one specific id 
+      //if hasn't been loaded, use find() function to load the query result in object[]
       throw new Kohana_404_Exception();
     }
-
+    //log::success("cliu", "will run __call() method");
     // Redirect to the more specific resource type, since it will render differently.  We can't
     // delegate here because we may have gotten to this page via /items/<id> which means that we
     // don't have a type-specific controller.  Also, we want to drive a single canonical resource
