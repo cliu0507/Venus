@@ -510,8 +510,11 @@ static void transAddImage(char *recvStr)
 
 static int normalizeResult(double score)
 {
-	/* [dfw todo]: is this normalization factor still valid? (coming from the imgSeek comment) */
-	int intResult = (-100.0 * score) / 38.70;
+	/* [the todo]:  
+	constant 33.10 is empirically by comparing several identical images and adjusting it to reach 100%.
+	this constant may still cause bias for some images. A more general algorithm could be designed to adapt
+	all images. */
+	int intResult = (-100.0 * score) / 33.10;
 
     if(intResult < 0)
 		intResult = 0;

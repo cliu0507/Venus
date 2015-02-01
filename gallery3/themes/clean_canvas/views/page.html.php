@@ -43,7 +43,6 @@
     <?= $theme->script("jquery.form.js") ?>
     <?= $theme->script("jquery-ui.js") ?>
     <?= $theme->script("gallery.common.js") ?>
-    <?= $theme->script("jquery-ui.js") ?>
 
     <? /* MSG_CANCEL is required by gallery.dialog.js */ ?>
     <script type="text/javascript">
@@ -66,7 +65,6 @@
 
     <? /* Theme specific CSS/JS goes last so that it can override module CSS/JS */ ?>
     <?= $theme->script("ui.init.js") ?>
-    <?= $theme->css("jquery-ui.css") ?>
     <?= $theme->css("yui/reset-fonts-grids.css") ?>
     <?= $theme->css("superfish/css/superfish.css") ?>
     <? if (module::get_var("theme_clean_canvas", "color_variant") == "dark" ): ?>
