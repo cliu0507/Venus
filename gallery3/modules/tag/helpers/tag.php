@@ -88,6 +88,9 @@ class tag_Core {
     if(empty($item)) {
       $tags = tag::popular_tags($count)->as_array();
     }
+	else if($item->id == 1) {
+		$tags = tag::all_tags()->as_array();
+	}
     else {
       $tags = tag::item_tags($item)->as_array();
     }

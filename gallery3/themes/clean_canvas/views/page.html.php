@@ -92,7 +92,12 @@
     <?= $theme->css("magnific-popup.css") ?>
     <? /* [dfw]: add magnific popup js file */ ?>
     <?= $theme->script("jquery.magnific-popup.min.js") ?>
-    
+
+    <!-- [dfw]: personal css -->
+    <?= $theme->css("personal_customized.css") ?>
+    <? /* [dfw]: personal js */ ?>
+    <?= $theme->script("personal_customized.js") ?>
+
     <!-- LOOKING FOR YOUR JAVASCRIPT? It's all been combined into the link below -->
     <?= $theme->get_combined("script") ?>
 

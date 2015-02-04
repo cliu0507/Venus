@@ -32,43 +32,28 @@ Shadowbox.init({
 <? // @todo Set hover on AlbumGrid list items for guest users ?>
 <div id="g-info">
   <?= $theme->album_top() ?>
-	<? if ($page_category == 'MyAlbum'): ?>
-	  <h1><?= html::purify('My Albums') ?></h1>
-	<? else: ?>
-      <h1><?= html::purify($item->title) ?></h1>
+  <div id="g-album-area">
+	<div id="g-title" style="float:left">
+	  <? if ($page_category == 'MyAlbum'): ?>
+	    <h1><?= html::purify('My Albums') ?></h1>
+	  <? else: ?>
+        <h1><?= html::purify($item->title) ?></h1>
+	  <? endif ?>
+	</div>
+	<? if ($item->id == 1): ?>
+	  <div id="g-album-sort" style="float:left">
+		<nav class="dfw-dropdown-nav">
+		<a class="dfw-dropdown-toggle" href="#" title="Menu">Most recent</a>
+		<ul class="dfw-dropdown">
+		  <li><a href="#">Most recent</a></li>
+		  <li><a href="#">Highest rating</a></li>
+		  <li><a href="#">Most reviewed</a></li>
+		</ul>
+		</nav>
+	  </div>
 	<? endif ?>
-  <? if ($item->id != 1 && access::can("edit", $item)): ?>
-    <!--<td><input type="button" value="action" onclick='show_popup_albumeditmenu()'></td>
-    <td id='g-popup-albumedit' style='display:none' onmouseout='hide_popup_albumeditmenu()'>
-        <td><a href="#anylink" class="ui-btn">Edit</a></td>
-        <td><a href="#anylink" class="ui-btn">Delete</a></td>
-        <td><a href="#anylink" class="ui-btn">Add</a></td>
-    </td>
-    -->
-  <? endif ?>
-
-  <? if ($item->id != 1 && access::can("edit", $item)): ?>
-  <ul id="menu" style="width:25%">
-  <li class="ui-state-disabled">Options</li>
-  <li>Edit this album
-  <ul style="width:100%">
-  
-  <?//$root = $parent->parent(); ?>
-  <?//$root_id = $parent->parent()->id; ?>
-      <li><a href = "<?= url::site("quick/form_edit/$item->id?from_id=1") ?>">Edit Information</a></li>
-      <li><a href = "<?= url::site("uploader/index/$item->id")?>">Add a photo</a></li>
-  </ul>
-  </li>
-  <? $csrf = access::csrf_token();?>
-  <? $my_page_type = $theme->page_type();?>
-  <li><a href = "<?= url::site("quick/form_delete/$item->id?csrf=$csrf&amp;" ."from_id=1&amp;page_type=$my_page_type") ?>">Delete this album</a></li>
-  <li><a href = "<?= url::site("form/add/albums/$item->id?type=album") ?>">Add new album</a></li>
-  <li><a href = "#">Organize albums</a><li>
-</ul>
-<? endif ?>
-
+  </div>
 </div>
-
 
 <ul id="g-album-grid" class="ui-helper-clearfix">
 <? if (count($children)): ?>
