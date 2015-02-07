@@ -32,7 +32,7 @@ class info_block_Core {
 				$block = new Block();
 				$block->css_id = "g-metadata";
 
-				$block->title = t("Venars Home");
+				$block->title = t("Album Sorting");
 
 				$block->content = new View("info_block.html");
 

@@ -18,9 +18,11 @@
  * Foundation, Inc., 51 Franklin Street - Fifth Floor, Boston, MA  02110-1301, USA.
  */
 class Albums_Controller extends Items_Controller {
+  /* [dfw todo]: hardcoded tag id for tag "All" */
+  protected $tag_all_id = 12;
+
   public function index() {
-    $this->show(ORM::factory("item", 1));
-    //log::success("cliu", "will run index() method");
+    $this->fshow("recent", "home", $this->tag_all_id);
   }
 
   public function show($album) {
@@ -30,13 +32,12 @@ class Albums_Controller extends Items_Controller {
       throw new Kohana_404_Exception();
     }
 
-    access::required("view", $album);
+	access::required("view", $album);
 
     $page_size = module::get_var("gallery", "page_size", 9);
     $input = Input::instance();
     $show = $input->get("show");
-    //log::success("cliu", "show is ".$show );
-    //It is NULL
+
     if ($show) {
       $child = ORM::factory("item", $show);
       $index = item::get_position($child);
@@ -51,28 +52,22 @@ class Albums_Controller extends Items_Controller {
     }
 
     $page = $input->get("page", "1");
-    //log::success("cliu", "page is ".$page );
-    
     $children_count = $album->viewable()->children_count();
-    //log::success("cliu", "children_count is ".$children_count );
-    
     $offset = ($page - 1) * $page_size;
     $max_pages = max(ceil($children_count / $page_size), 1);
-     
+
     // Make sure that the page references a valid offset
     if ($page < 1) {
       url::redirect($album->abs_url());
     } else if ($page > $max_pages) {
       url::redirect($album->abs_url("page=$max_pages"));
     }
-   //$kohana_include_paths = Kohana::include_paths();
-   //log::success("cliu", $kohana_include_paths);
-    $template = new Theme_View("page.html", "collection", "album");
 
+    $template = new Theme_View("page.html", "collection", "album");
     $template->set_global(
       array("page" => $page,
             "page_title" => null,
-		    "page_category" => 'Home',
+			"page_category" => 'child',
             "max_pages" => $max_pages,
             "page_size" => $page_size,
             "item" => $album,
@@ -84,13 +79,14 @@ class Albums_Controller extends Items_Controller {
     $album->increment_view_count();
 
     print $template;
-    item::set_display_context_callback("Albums_Controller::get_display_context");
+    item::set_display_context_callback("Albums_Controller::get_display_context");	
   }
 
-  public function myalbum() {
+  /* first-level album show */
+  public function fshow($show_sort, $show_type, $show_tag) {
 	$album = ORM::factory("item", 1);
 	
-    access::required("view", $album);
+	access::required("view", $album);
 
     $page_size = module::get_var("gallery", "page_size", 9);
     $input = Input::instance();
@@ -109,10 +105,41 @@ class Albums_Controller extends Items_Controller {
       }
     }
 
-	$cur_user = identity::active_user();
+	if($show_type == 'my') {
+		$cur_user = identity::active_user();
+		$where_clause = array(array("owner_id", "=", $cur_user->id));
+	}
+	else {
+		$where_clause = null;
+	}
+	
+	/* [dfw todo]: should we set the "sort_column" and "sort_order" of the $item? what to do for rating? */
+	if($show_sort == 'recent') {
+		$order_by = array("updated" => "DESC");
+		$order_by["id"] = "ASC";
+	}
+	else if($show_sort == 'rating') {
+		$order_by = array("view_count" => "DESC");
+		$order_by["id"] = "ASC";		
+	}
+	else if($show_sort == 'reviewed') {
+		$order_by = array("view_count" => "DESC");
+		$order_by["id"] = "ASC";
+	}
+	else {
+		$order_by = null;
+	}
 	
     $page = $input->get("page", "1");
-    $children_count = $album->viewable()->children_count(array(array("owner_id", "=", $cur_user->id)));
+	
+	if($show_tag == $this->tag_all_id) {
+		$children_count = $album->viewable()->children_count($where_clause);
+	}
+	else {
+		$children = album::get_children_albums($show_sort, $show_type, $show_tag);
+		$children_count = count($children);
+	}
+	
     $offset = ($page - 1) * $page_size;
     $max_pages = max(ceil($children_count / $page_size), 1);
 
@@ -123,15 +150,21 @@ class Albums_Controller extends Items_Controller {
       url::redirect($album->abs_url("page=$max_pages"));
     }
 
+	if($show_tag == $this->tag_all_id) {
+		$children = $album->viewable()->children($page_size, $offset, $where_clause, $order_by);
+	}
+	
     $template = new Theme_View("page.html", "collection", "album");
     $template->set_global(
       array("page" => $page,
             "page_title" => null,
-			"page_category" => 'MyAlbum',
+			"page_category" => $show_type,
+		    "page_sort" => $show_sort,
+		    "page_tag" => $show_tag,
             "max_pages" => $max_pages,
             "page_size" => $page_size,
             "item" => $album,
-            "children" => $album->viewable()->children($page_size, $offset, array(array("owner_id", "=", $cur_user->id))),
+            "children" => $children,
             "parents" => $album->parents()->as_array(), // view calls empty() on this
             "breadcrumbs" => Breadcrumb::array_from_item_parents($album),
             "children_count" => $children_count));
@@ -139,7 +172,7 @@ class Albums_Controller extends Items_Controller {
     $album->increment_view_count();
 
     print $template;
-    item::set_display_context_callback("Albums_Controller::get_display_context");
+    item::set_display_context_callback("Albums_Controller::get_display_context");	
   }
   
   static function get_display_context($item) {

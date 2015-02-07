@@ -15,44 +15,20 @@ Shadowbox.init({
 <!-- [dfw]: use magnific popup to show photo -->
 <? $useMagicPop = TRUE ?>
 
-<script type="text/javascript">
- function show_popup_albumeditmenu(){
-   document.getElementById("g-popup-albumedit").style.display="block";
- }
- function hide_popup_albumeditmenu(){
-   document.getElementById("g-popup-albumedit").style.display="none";
- }
- $(function() {
-    $( "#menu" ).menu();
-  });
- 
-</script>
 <? endif ?>
 
 <? // @todo Set hover on AlbumGrid list items for guest users ?>
 <div id="g-info">
   <?= $theme->album_top() ?>
-  <div id="g-album-area">
-	<div id="g-title" style="float:left">
-	  <? if ($page_category == 'MyAlbum'): ?>
-	    <h1><?= html::purify('My Albums') ?></h1>
+  <? if ($page_category == 'my'): ?>
+	<h1><?= html::purify('My Albums') ?></h1>
+  <? else: ?>
+	  <? if ($page_category == 'home'): ?>
+		<h1><?= html::purify('Fashion Show') ?></h1>
 	  <? else: ?>
-        <h1><?= html::purify($item->title) ?></h1>
+		<h1><?= html::purify($item->title) ?></h1>
 	  <? endif ?>
-	</div>
-	<? if ($item->id == 1): ?>
-	  <div id="g-album-sort" style="float:left">
-		<nav class="dfw-dropdown-nav">
-		<a class="dfw-dropdown-toggle" href="#" title="Menu">Most recent</a>
-		<ul class="dfw-dropdown">
-		  <li><a href="#">Most recent</a></li>
-		  <li><a href="#">Highest rating</a></li>
-		  <li><a href="#">Most reviewed</a></li>
-		</ul>
-		</nav>
-	  </div>
-	<? endif ?>
-  </div>
+  <? endif ?>
 </div>
 
 <ul id="g-album-grid" class="ui-helper-clearfix">

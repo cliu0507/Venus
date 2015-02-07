@@ -86,4 +86,38 @@ class album_Core {
                  "view_count" => t("Number of views"),
                  "rand_key" => t("Random"));
   }
+  
+  /* [dfw]: get all the children albums */
+  static function get_children_albums($show_sort, $show_type, $show_tag_id) {
+	$order_column = "updated";
+	
+	/* [dfw todo]: what to do for rating? */
+	if($show_sort == 'recent') {
+		$order_column = "updated";
+	}
+	else if($show_sort == 'rating') {
+		$order_column = "view_count";
+	}
+	else if($show_sort == 'reviewed') {
+		$order_column = "view_count";
+	}
+	
+	if($show_type == 'my') {
+		$cur_user = identity::active_user();
+		
+		return ORM::factory("item")
+				->join("items_tags", "items.id", "items_tags.item_id")
+				->where("items_tags.tag_id", "=", $show_tag_id)
+				->where("items.owner_id", "=", $cur_user->id)
+				->order_by($order_column, "DESC")
+				->find_all();		
+	}
+	else {
+		return ORM::factory("item")
+				->join("items_tags", "items.id", "items_tags.item_id")
+				->where("items_tags.tag_id", "=", $show_tag_id)
+				->order_by($order_column, "DESC")
+				->find_all();
+	}
+  }
 }

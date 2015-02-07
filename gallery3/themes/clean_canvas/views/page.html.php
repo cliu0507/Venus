@@ -169,19 +169,6 @@
           <script type="text/javascript"> $(document).ready(function() { $("#g-site-menu").css("visibility", "visible"); }) </script>
           <?= $theme->header_bottom() ?>
         </div>
-
-        <? if (!empty($breadcrumbs)): ?>
-        <ul class="g-breadcrumbs">
-          <? foreach ($breadcrumbs as $breadcrumb): ?>
-           <li class="<?= $breadcrumb->last ? "g-active" : "" ?>
-                      <?= $breadcrumb->first ? "g-first" : "" ?>">
-            <? if (!$breadcrumb->last): ?> <a href="<?= $breadcrumb->url ?>"><? endif ?>
-            <?= html::purify(text::limit_chars($breadcrumb->title, module::get_var("gallery", "visible_title_length"))) ?>
-            <? if (!$breadcrumb->last): ?></a><? endif ?>
-           </li>
-          <? endforeach ?>
-        </ul>
-        <? endif ?>
       </div>
       <div id="bd">
         <div id="yui-main">
@@ -192,7 +179,6 @@
             </div>
           </div>
         </div>
-        <? if (!($theme->item() && !empty($parents))): ?>
 			<style type="text/css">
 			/* No breadcrums, position adaption for sidebar needed */
 			#g-sidebar
@@ -200,7 +186,6 @@
 				top: 6px;
 			}
 			</style>		
-		<? endif ?>
         <div id="g-sidebar" class="yui-b">
           <? if ($theme->page_subtype != "login"): ?>
           <?= new View("sidebar.html") ?>

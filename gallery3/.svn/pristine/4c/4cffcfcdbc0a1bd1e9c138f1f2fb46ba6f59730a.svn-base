@@ -1,0 +1,123 @@
+<?php defined("SYSPATH") or die("No direct script access.");
+/**
+ * Gallery - a web based photo album viewer and editor
+ * Copyright (C) 2000-2013 Bharat Mediratta
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or (at
+ * your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street - Fifth Floor, Boston, MA  02110-1301, USA.
+ */
+
+/**
+ * This is the API for handling albums.
+ *
+ * Note: by design, this class does not do any permission checking.
+ */
+class album_Core {
+
+  static function get_add_form($parent) {
+    $form = new Forge("albums/create/{$parent->id}", "", "post", array("id" => "g-add-album-form"));
+    $group = $form->group("add_album")
+      ->label(t("Add an album to %album_title", array("album_title" => $parent->title)));
+    $group->input("title")->label(t("Title"))
+      ->error_messages("required", t("You must provide a title"))
+      ->error_messages("length", t("Your title is too long"));
+    $group->textarea("description")->label(t("Description"));
+    /* [dfw]: remove directory name and slug (internet address) */
+    $group->hidden("type")->value("album");
+    $group->checkbox("challengeable")->label(t("Challengeable"))->checked($parent->challengeable);
+
+    module::event("album_add_form", $parent, $form);
+
+    $group->submit("")->value(t("Create"));
+    $form->script("")
+      ->url(url::abs_file("modules/gallery/js/albums_form_add.js"));
+
+    return $form;
+  }
+
+  static function get_edit_form($parent) {
+    $form = new Forge(
+      "albums/update/{$parent->id}", "", "post", array("id" => "g-edit-album-form"));
+    $form->hidden("from_id")->value($parent->id);
+    $group = $form->group("edit_item")->label(t("Edit Album"));
+
+    $group->input("title")->label(t("Title"))->value($parent->title)
+        ->error_messages("required", t("You must provide a title"))
+      ->error_messages("length", t("Your title is too long"));
+    $group->textarea("description")->label(t("Description"))->value($parent->description);
+    if ($parent->id != 1) {
+      /* [dfw]: remove directory name and slug (internet address) */
+    } else {
+      $group->hidden("name")->value($parent->name);
+      $group->hidden("slug")->value($parent->slug);
+    }
+
+    $group->checkbox("challengeable")->label(t("Challengeable"))->checked($parent->challengeable);
+    /* [dfw]: remove sort by and sort order */
+    module::event("item_edit_form", $parent, $form);
+
+    $group = $form->group("buttons")->label("");
+    $group->hidden("type")->value("album");
+    $group->submit("")->value(t("Modify"));
+    return $form;
+  }
+
+  /**
+   * Return a structured set of all the possible sort orders.
+   */
+  static function get_sort_order_options() {
+    return array("weight" => t("Manual"),
+                 "captured" => t("Date captured"),
+                 "created" => t("Date uploaded"),
+                 "title" => t("Title"),
+                 "name" => t("File name"),
+                 "updated" => t("Date modified"),
+                 "view_count" => t("Number of views"),
+                 "rand_key" => t("Random"));
+  }
+  
+  /* [dfw]: get all the children albums */
+  static function get_children_albums($show_sort, $show_type, $show_tag_id) {
+	$order_column = "updated";
+	
+	/* [dfw todo]: what to do for rating? */
+	if($show_sort == 'recent') {
+		$order_column = "updated";
+	}
+	else if($show_sort == 'rating') {
+		$order_column = "view_count";
+	}
+	else if($show_sort == 'reviewed') {
+		$order_column = "view_count";
+	}
+	
+	if($show_type == 'my') {
+		$cur_user = identity::active_user();
+		
+		return ORM::factory("item")
+				->join("items_tags", "items.id", "items_tags.item_id")
+				->where("items_tags.tag_id", "=", $show_tag_id)
+				->where("items.owner_id", "=", $cur_user->id)
+				->order_by($order_column, "DESC")
+				->find_all();		
+	}
+	else {
+		return ORM::factory("item")
+				->join("items_tags", "items.id", "items_tags.item_id")
+				->where("items_tags.tag_id", "=", $show_tag_id)
+				->order_by($order_column, "DESC")
+				->find_all();
+	}
+  }
+}

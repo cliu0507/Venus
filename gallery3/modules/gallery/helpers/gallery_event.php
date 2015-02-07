@@ -283,12 +283,13 @@ class gallery_event_Core {
                     ->label(t("Home"))
                     ->url(item::root()->url()));
 
-      $menu->append($fashion_show_menu = Menu::factory("submenu")
+      $menu->append(Menu::factory("link")
                     ->id("fashion_show")
-                    ->label(t("Fashion Show")));
+                    ->label(t("Fashion Show"))
+                    ->url(item::root()->url()));
 
       /* [dfw]: route to tag module to populate the fashion show menu */
-      module::event("show_menu", $fashion_show_menu, $theme);
+      //module::event("show_menu", $fashion_show_menu, $theme);
       
       $menu->append(Menu::factory("link")
                     ->id("fashion_challenge")
@@ -304,7 +305,7 @@ class gallery_event_Core {
           $my_show_menu->append(Menu::factory("link")
                         ->id("my_album")
                         ->label(t("My Album"))
-                        ->url(url::site("albums/myalbum")));
+                        ->url(url::site("albums/fshow/recent/my/12")));
 
           $my_show_menu->append(Menu::factory("link")
                         ->id("my_challenge")
