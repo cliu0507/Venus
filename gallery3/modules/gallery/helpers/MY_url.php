@@ -29,6 +29,7 @@ class url extends url_Core {
       Router::$controller = "albums";
       Router::$method = 1;
       return;
+      
     }
 
     $item = item::find_by_relative_url(html_entity_decode(Router::$current_uri, ENT_QUOTES));
@@ -37,6 +38,11 @@ class url extends url_Core {
       Router::$controller_path = MODPATH . "gallery/controllers/{$item->type}s.php";
       Router::$method = "show";
       Router::$arguments = array($item);
+     /* log::success("cliu" , Router::$controller);
+      log::success("cliu" , Router::$controller_path);
+      log::success("cliu" , Router::$method);
+      log::success("cliu" , Router::$arguments);
+      */
     }
   }
 

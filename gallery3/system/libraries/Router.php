@@ -41,6 +41,7 @@ class Router_Core {
 			Router::$query_string = '?'.urldecode(trim($_SERVER['QUERY_STRING'], '&'));
 		}
 
+   // log::success("cliu", "query_string is " . Router::$query_string);
 		if (Router::$routes === NULL)
 		{
 			// Load routes
@@ -92,10 +93,10 @@ class Router_Core {
 			{
 				// Custom routing
 				Router::$routed_uri = Router::routed_uri(Router::$current_uri);
-				//$current_uri = gallery/index.php
+				
 			}
 		}
-     //It seems that Router::$routed_uri is like this format: gallery3/albums/myalbum
+ 
 		// Explode the routed segments by slashes
 		Router::$rsegments = explode('/', Router::$routed_uri);
 
@@ -118,7 +119,7 @@ class Router_Core {
 				// Search within controllers only
 				$dir .= 'controllers/';
         /*
-        $dir.$controller_path = $paths/controllers/gallery3
+        
         $dir.$controller_path = $paths/controllers/albums 
         
         Found in modules/gallery/controllers/albums
@@ -150,9 +151,9 @@ class Router_Core {
 				}
 			}
 			/* $rsegments = array(
-			    [0] => gallery3,
-			    [1] => albums,
-			    [2] => myalbum,
+			    
+			    [0] => albums,
+			    [1] => myalbum,
 			
 			);
 			
@@ -167,7 +168,9 @@ class Router_Core {
 			// Add another slash
 			$controller_path .= '/';
 		}
-
+    
+    
+    
 		if ($method_segment !== NULL AND isset(Router::$rsegments[$method_segment]))
 		{
 			// Set method = myalbum in this case
@@ -228,8 +231,10 @@ class Router_Core {
 			// Remove the URI from $_SERVER['QUERY_STRING']
 			$_SERVER['QUERY_STRING'] = preg_replace('~\bkohana_uri\b[^&]*+&?~', '', $_SERVER['QUERY_STRING']);
 		}
+		
 		else
 		{
+		
 			if (isset($_SERVER['PATH_INFO']) AND $_SERVER['PATH_INFO'])
 			{
 				Router::$current_uri = $_SERVER['PATH_INFO'];
@@ -258,7 +263,9 @@ class Router_Core {
 					//Router::$current_uri = Null
 				}
 			}
-		}
+			
+		
+		} 
 
 		// Remove slashes from the start and end of the URI
 		Router::$current_uri = trim(Router::$current_uri, '/');
