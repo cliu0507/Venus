@@ -15,6 +15,17 @@ $(document).ready(function() {
     pathClass: "g-selected",
     speed: 'fast'
   }).show();
+  
+  $("#g-dress-search-menu .g-menu").hide().addClass("sf-menu");
+  $("#g-dress-search-menu .g-menu").superfish({
+    delay: 500,
+    animation: {
+      opacity:'show',
+      height:'show'
+    },
+    pathClass: "g-selected",
+    speed: 'fast'
+  }).show();
 
   // Initialize status message effects
   $("#g-action-status li").gallery_show_message();

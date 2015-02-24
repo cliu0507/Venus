@@ -30,22 +30,33 @@ class image_block_block_Core {
       // The random_query approach is flawed and doesn't always return a
       // result when there actually is one. Retry a *few* times.
       // @todo Consider another fallback if further optimizations are necessary.
-      $image_count = module::get_var("image_block", "image_count");
       $items = array();
-      for ($i = 0; $i < $image_count; $i++) {
-        $attempts = 0;
-        $item = null;
-        do {
-          $item = item::random_query()->where("type", "=", "album")->find_all(1)->current();
-        } while (!$item && $attempts++ < 3);
-        if ($item) {
-          $items[] = $item;
-        }
-      }
+		
+	  if($theme->page_category == 'challenge') {
+		  $image_count = 1;
+		  $items[] = ORM::factory("item", $theme->challengeId);
+		  $title1 = "Album to Challenge";
+		  $title2 = "Album to Challenge";
+	  }
+	  else {
+		$image_count = module::get_var("image_block", "image_count");
+		for ($i = 0; $i < $image_count; $i++) {
+			$attempts = 0;
+			$item = null;
+			do {
+				$item = item::random_query()->where("type", "=", "album")->find_all(1)->current();
+			} while (!$item && $attempts++ < 3);
+			if ($item) {
+				$items[] = $item;
+			}
+		}
+		$title1 = "Recommended Album";
+		$title2 = "Recommended Albums";
+	  }
       if ($items) {
         $block = new Block();
         $block->css_id = "g-image-block";
-        $block->title = t2("Recommended Album", "Recommended Albums", $image_count);
+        $block->title = t2($title1, $title2, $image_count);
         $block->content = new View("image_block_block.html");
         $block->content->items = $items;
       }

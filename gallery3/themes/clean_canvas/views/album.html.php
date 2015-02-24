@@ -26,7 +26,11 @@ Shadowbox.init({
 	  <? if ($page_category == 'home'): ?>
 		<h1><?= html::purify('Fashion Show') ?></h1>
 	  <? else: ?>
-		<h1><?= html::purify($item->title) ?></h1>
+		  <? if ($page_category == 'challenge'): ?>
+			<h1><?= html::purify('Please Choose Your Album to Challenge') ?></h1>
+		  <? else: ?>
+			<h1><?= html::purify($item->title) ?></h1>
+		  <? endif ?>
 	  <? endif ?>
   <? endif ?>
 </div>

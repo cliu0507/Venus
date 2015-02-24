@@ -186,24 +186,25 @@ td {
 
 /* Login menu ~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
+/* Site Menu & Dress Search Menu ~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 #g-site-menu {
 	left: 200px;
 }
 
-/* Site Menu  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
-#g-site-menu ul li:hover {
+#g-site-menu ul li:hover, #g-dress-search-menu ul li:hover {
   border-radius: 10px;
   -moz-border-radius: 10px;
   -webkit-border-radius; 10px;
 }
 
-#g-site-menu ul li ul li:hover, #g-site-menu a:hover, #g-site-menu a:active, #g-site-menu a:focus {
+#g-site-menu ul li ul li:hover, #g-site-menu a:hover, #g-site-menu a:active, #g-site-menu a:focus,
+#g-dress-search-menu ul li ul li:hover, #g-dress-search-menu a:hover, #g-dress-search-menu a:active, #g-dress-search-menu a:focus {
   border-radius: 10px;
   -moz-border-radius: 10px;
   -webkit-border-radius; 10px;
 }
 
-#g-site-menu ul {
+#g-site-menu ul, #g-dress-search-menu ul {
   border-radius: 10px;
   -moz-border-radius: 10px;
   -webkit-border-radius; 10px;

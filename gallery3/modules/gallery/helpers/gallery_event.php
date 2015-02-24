@@ -315,6 +315,7 @@ class gallery_event_Core {
       
       $item = $theme->item();
 
+
       //if (identity::active_user()->admin && !empty($item)) {
       if (!empty($item)) {
         $can_edit = $item && access::can("edit", $item);
@@ -324,72 +325,65 @@ class gallery_event_Core {
         if ($can_add) {
           $menu->append($add_menu = Menu::factory("submenu")
                         ->id("add_menu")
-                        ->label(t("Album action")));
-          $is_album_writable =
-            is_writable($item->is_album() ? $item->file_path() : $item->parent()->file_path());
+                        ->label(t("Album Action")));
+          $is_album_writable = is_writable($item->is_album() ? $item->file_path() : $item->parent()->file_path());
             
           if ($is_album_writable) {
-          	
-          	
-          		if($item->id != '1')
-            	{
-            	
-            	
-          		if ($item->is_album()) {
-              	$add_menu->append(Menu::factory("dialog")
-                                ->id("add_album_item")
-                                ->label(t("Add an album"))
-                                ->url(url::site("form/add/albums/{$item->parent()->id}?type=album")));                       
-            	}        	
-            	$add_menu->append(Menu::factory("dialog")
-                              ->id("add_photos_item")
-                              ->label(t("Add photos"))
-                              ->url(url::site("uploader/index/$item->id")));
-              if($can_edit)
-              {
-                $add_menu->append(Menu::factory("dialog")
-                                    ->id("edit_permissions")
-                                    ->label(t("Edit permissions"))
-                                    ->url(url::site("permissions/browse/$item->id")));
-                $add_menu->append(Menu::factory("dialog")
-                                  ->id("edit_item")
-                                  ->label("Edit this album")
-                                  ->url(url::site("form/edit/{$item->type}s/$item->id?from_id={$item->id}")));
-           
-                $add_menu->append(Menu::factory("dialog")
-                              ->id("delete_this_album")
-                              ->label(t("Delete this album"))
-                              ->url(url::site("uploader/index/$item->id")));
-               
-              	}
-              	  
-              if($can_challenge)
-              {
-              	 $add_menu->append(Menu::factory("dialog")
-                              ->id("challenge_this_album")
-                              ->label(t("Challenge album"))
-                              ->url(url::site("uploader/index/$item->id")));
-              	}              
-                              
-             }
-            // log::success("cliu",$add_menu->url );                 
-            else
-            {
-            	
-              $add_menu->append(Menu::factory("dialog")
-                                ->id("add_album_item")
-                                ->label(t("Add an album"))
-                                ->url(url::site("form/add/albums/$item->id?type=album")));
-   	
-            	}
-            
-            
+			  $add_menu->append(Menu::factory("dialog")
+							->id("add_album_item")
+							->label(t("Add an album"))
+							->url(url::site("form/add/albums/1?type=album")));
+			  
+		      if ($item->id != '1') {
+					if ($can_edit) {
+						$add_menu->append(Menu::factory("dialog")
+										->id("edit_item")
+										->label("Edit this album")
+										->url(url::site("form/edit/{$item->type}s/$item->id?from_id={$item->id}")));
+
+						$csrf = access::csrf_token();
+						$page_type = $theme->page_type();
+						$add_menu->append(Menu::factory("dialog")
+										->id("delete_this_album")
+										->label(t("Delete this album"))
+										->url(url::site("quick/form_delete/$item->id?csrf=$csrf&amp;" .
+								   "from_id={$item->id}&amp;page_type=$page_type")));
+						
+						$add_menu->append(Menu::factory("dialog")
+										->id("add_photos_item")
+										->label(t("Add photos"))
+										->url(url::site("uploader/index/$item->id")));	
+						
+						$add_menu->append(Menu::factory("dialog")
+										->id("organize")
+										->label(t("Organize album"))
+										->url(url::site("organize/dialog/{$item->id}")));	
+										
+						$add_menu->append(Menu::factory("link")
+										->id("downloadalbum")
+										->label(t("Download Album"))
+										->url(url::site("downloadalbum/zip/album/{$item->id}")));											
+					}
+
+					if ($can_challenge) {
+						$add_menu->append(Menu::factory("link")
+										->id("challenge_this_album")
+										->label(t("Challenge this album"))
+										->url(url::site("challenge/challenge_album/$item->id")));
+					}
+				}
+				
+				if(identity::active_user()->admin)
+					$add_menu->append(Menu::factory("dialog")
+									->id("edit_permissions")
+									->label(t("Edit permissions"))
+									->url(url::site("permissions/browse/$item->id")));					
           } else {
             message::warning(t("The album '%album_name' is not writable.",
                                array("album_name" => $item->title)));
           }
         }
-
+        
         switch ($item->type) {
         case "album":
           $option_text = t("Album options");
@@ -406,10 +400,11 @@ class gallery_event_Core {
           $edit_text = t("Edit photo");
           $delete_text = t("Delete photo");
         }
-
+        
         $menu->append($options_menu = Menu::factory("submenu")
                       ->id("options_menu")
                       ->label($option_text));
+                      
         if ($item && ($can_edit || $can_add)) {
           if ($can_edit) {
             $options_menu->append(Menu::factory("dialog")
@@ -427,7 +422,7 @@ class gallery_event_Core {
             }
           }
         }
-
+      
         $csrf = access::csrf_token();
         $page_type = $theme->page_type();
         if ($can_edit && $item->is_photo() && graphics::can("rotate")) {
@@ -483,6 +478,7 @@ class gallery_event_Core {
                 ->url(url::site("quick/form_delete/$item->id?csrf=$csrf&amp;from_id={$item->id}&amp;page_type=$page_type")));
           }
         }
+
       }
       
       if (identity::active_user()->admin) {

@@ -20,7 +20,9 @@
 class downloadalbum_event_Core {
   /* [dfw]: add icon link in the sidebar for "add album", "challenge album", and "similar dress search" */
   static function album_menu($menu, $theme) {    
-    /* [dfw]: logged-in user could always add album */
+    /* [dfw todo]: we may consider add "album action" here in the future */
+	/* [dfw]: logged-in user could always add album */
+	/*
     $active = identity::active_user();
     if(!$active->guest) {
         $menu->append(Menu::factory("dialog")
@@ -37,8 +39,9 @@ class downloadalbum_event_Core {
                             ->url(url::site("challenge/challenge_album/{$theme->item->id}"))
                             ->css_id("g-challenge-album-link"));
     }
-    
+    */
     /* [dfw todo]: hardcode top album id 1. any better way? */
+	/*
     if( $theme->item->id != 1 && access::can("downloadalbum", $theme->item) && $theme->children_count > 0 ) {
       $downloadLink = url::site("downloadalbum/zip/album/{$theme->item->id}");
       $menu
@@ -54,6 +57,7 @@ class downloadalbum_event_Core {
                         ->label(t("Similar Dress"))
                         ->url(url::site("similardress/"))
                         ->css_id("g-similar-dress-link"));
+	 */
   }
 
   static function tag_menu($menu, $theme) {

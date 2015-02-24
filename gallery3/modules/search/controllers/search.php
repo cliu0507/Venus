@@ -62,6 +62,7 @@ class Search_Controller extends Controller {
       array("page" => $page,
             "max_pages" => $max_pages,
             "page_size" => $page_size,
+            "page_category" => "search",
             "breadcrumbs" => array(
               Breadcrumb::instance($root->title, $root->url())->set_first(),
               Breadcrumb::instance($q, url::abs_site("search?q=" . urlencode($q)))->set_last(),

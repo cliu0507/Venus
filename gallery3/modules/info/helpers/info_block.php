@@ -27,7 +27,7 @@ class info_block_Core {
     switch ($block_id) {
     case "metadata":
       // [dfw]: show info block for top level album in the sidebar.
-		if ($theme->item())
+		if ($theme->item() && ($theme->page_category != 'challenge'))
 			if($theme->item()->id == 1) {
 				$block = new Block();
 				$block->css_id = "g-metadata";

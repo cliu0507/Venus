@@ -186,11 +186,13 @@
 				top: 6px;
 			}
 			</style>		
+        <? if ($theme->page_category != "challengeShow"): ?>			
         <div id="g-sidebar" class="yui-b">
           <? if ($theme->page_subtype != "login"): ?>
           <?= new View("sidebar.html") ?>
           <? endif ?>
         </div>
+        <? endif ?>		  
       </div>
       <div id="g-footer" class="ui-helper-clearfix">
         <?= $theme->footer() ?>

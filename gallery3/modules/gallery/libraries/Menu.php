@@ -24,6 +24,7 @@ class Menu_Element {
   public $css_class;
   public $id;
   public $type;
+  public $img;
 
   public function __construct($type) {
     $this->type = $type;
@@ -76,6 +77,14 @@ class Menu_Element {
    */
   public function css_class($css_class) {
     $this->css_class = $css_class;
+    return $this;
+  }
+  
+  /**
+   * Set the img
+   */
+  public function img($img) {
+    $this->img = $img;
     return $this;
   }
 

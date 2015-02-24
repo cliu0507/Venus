@@ -22,13 +22,21 @@ class info_theme_Core {
     $results = "";
     if ($item->owner) {
       $results .= "<li>";
-      if ($item->owner->url) {
-        $results .= t("By: <a href=\"%owner_url\">%owner_name</a>",
-                      array("owner_name" => $item->owner->display_name(),
-                            "owner_url" => $item->owner->url));
-      } else {
-        $results .= t("(By: %owner_name)", array("owner_name" => $item->owner->display_name()));
-      }
+	  if(($theme->page_category == 'challenge') && ($item->id != $theme->challengeId)) {
+		  /* [dfw todo]: maybe we should use an icon instead of the text in the future */
+		  $challengeLink = url::site("challenge/doing_challenge/" . $theme->challengeId . "/" . $item->id);
+		  $results .= t("<a href=\"%challenge_url\">click to choose me</a>",
+		  			    array("challenge_url" => $challengeLink));		  
+	  }
+	  else {
+		  if ($item->owner->url) {
+			$results .= t("By: <a href=\"%owner_url\">%owner_name</a>",
+						  array("owner_name" => $item->owner->display_name(),
+								"owner_url" => $item->owner->url));
+		  } else {
+			$results .= t("(By: %owner_name)", array("owner_name" => $item->owner->display_name()));
+		  }
+	  }
       $results .= "</li>";
     }
     if ($item->type == "album") {

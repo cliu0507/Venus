@@ -91,6 +91,40 @@ class Comments_Controller extends Controller {
     comment::vote($item_id, 50);
   }
   
+  public function voteChallengeLeft($challenge_id, $albumId) {
+    try {
+	  db::build()
+		  ->update("album_challenges")
+		  ->set("left_album_vote", "left_album_vote + 1")
+		  ->where("id", "=", $challenge_id)
+		  ->execute();
+      
+      json::reply(array("result" => "success"));
+    } catch (Database_Exception $e) {
+      json::reply(array("result" => "error",
+          "text" => Database_Exception::text($e)));
+    }
+	
+	votelike($albumId);
+  }
+  
+  public function voteChallengeRight($challenge_id, $albumId) {
+    try {
+	  db::build()
+		  ->update("album_challenges")
+		  ->set("right_album_vote", "right_album_vote + 1")
+		  ->where("id", "=", $challenge_id)
+		  ->execute();
+      
+      json::reply(array("result" => "success"));
+    } catch (Database_Exception $e) {
+      json::reply(array("result" => "error",
+          "text" => Database_Exception::text($e)));
+    }
+	
+	votelike($albumId);
+  }
+  
   /// FIXME: is there any potential security holes, probably should be moved to admin_comments.php
   /// Need to figure out how to call an admin controller function with a url
   public function installrating() {

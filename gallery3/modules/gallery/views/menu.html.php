@@ -11,7 +11,11 @@
 
 <li title="<?= $menu->label->for_html_attr() ?>">
   <a href="#">
+    <? if ($menu->img): ?>
+    <?= "<img src=" . $menu->img . ">" ?>
+    <? else: ?>
     <?= $menu->label->for_html() ?>
+    <? endif ?>
   </a>
   <ul>
     <? foreach ($menu->elements as $element): ?>

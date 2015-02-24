@@ -288,6 +288,10 @@ td {
   width: 17em;
 }
 
+#g-similar-dress-link {
+  background-image: url('../images/similar-dress.png');
+}
+
 #g-content .g-block h2 {
   padding-left: 0;
 }
@@ -305,6 +309,14 @@ td {
 }
 
 #g-content #g-album-grid .g-item {
+  float: left;
+  padding: 1.6em 8px;
+  position: relative;
+  width: 213px;
+  z-index: 1;
+}
+
+#g-content #g-album-grid .g-sep-challenge {
   float: left;
   padding: 1.6em 8px;
   position: relative;

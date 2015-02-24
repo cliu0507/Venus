@@ -27,7 +27,7 @@ class tag_block_Core {
     $block = "";
     switch ($block_id) {
     case "tag":
-      if($theme->page_subtype == 'album') {
+      if(($theme->page_subtype == 'album') && ($theme->page_category != 'challenge')) {
           $block = new Block();
           $block->css_id = "g-tag";
           $block->title = t("Album category");

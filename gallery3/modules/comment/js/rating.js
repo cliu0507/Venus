@@ -23,3 +23,19 @@ function vote(type, itemid) {
     }
   });
 };
+
+function voteChallenge(type, challengeId, albumId) {
+  $.post("comments/voteChallenge" + type + "/" + challengeId + "/" + albumId, {}, function(response) {
+    if (response.result === "success") {
+      var curValue = document.getElementById('challengeVote-' + challengeId).innerHTML;
+	  var parseRes = curValue.split(" ");
+	  
+	  if(type == 'Left') {
+		  document.getElementById('challengeVote-' + challengeId).value = (parseRes[0] + 1) + " votes VS " + parseRes[3] + " votes";
+	  }
+	  else {
+		  document.getElementById('challengeVote-' + challengeId).value = parseRes[0] + " votes VS " + (parseRes[3] + 1) + " votes";
+	  }
+    }
+  });
+};

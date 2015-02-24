@@ -15,14 +15,6 @@ Shadowbox.init({
 <!-- [dfw]: use magnific popup to show photo -->
 <? $useMagicPop = TRUE ?>
 
-<script type="text/javascript">
- function show_popup_albumeditmenu(){
-   document.getElementById("g-popup-albumedit").style.display="block";
- }
- function hide_popup_albumeditmenu(){
-   document.getElementById("g-popup-albumedit").style.display="none";
- }
-</script>
 <? endif ?>
 
 <? // @todo Set hover on AlbumGrid list items for guest users ?>
@@ -34,74 +26,58 @@ Shadowbox.init({
 <ul id="g-album-grid" class="ui-helper-clearfix">
 <? if (count($children)): ?>
   <? foreach ($children as $child): ?>
-    <? $item_class = "g-photo"; ?>
+    <? $item_class = "g-album"; ?>
     <? $left_album = $child->left_album(); ?>
     <? $right_album = $child->right_album(); ?>
 
   <li id="g-item-id-<?= $left_album->id ?>" class="g-item <?= $item_class ?>">
     <?= $theme->thumb_top($left_album) ?>
-	<? if ($useShadowBox && ( $item_class === "g-photo")) : ?>
-      <a href="<?= $left_album->file_url() ?>" class="g-fullsize-link" rel="shadowbox[<?= $item->parent()->title ?>]" title="<?= html::purify($left_album->title) ?>">
-    <? elseif ($useMagicPop && ( $item_class === "g-photo")) : ?>
-          <a href="<?= $left_album->file_url() ?>" class="g-magicpop-link" rel="<?= html::purify($left_album->description) ?>" title="<?= html::purify($left_album->title) ?>">
-    <? else: ?>
     <a href="<?= $left_album->url() ?>">
-	<? endif ?>
       <? if ($left_album->has_thumb()): ?>
       <?= $left_album->thumb_img(array("class" => "g-thumbnail")) ?>
       <? endif ?>
     </a>
     <?= $theme->thumb_bottom($left_album) ?>
-    <? //=$theme->context_menu($left_album, "#g-item-id-{$left_album->id} .g-thumbnail") ?>
+    <?= $theme->context_menu($left_album, "#g-item-id-{$left_album->id} .g-thumbnail") ?>
     <h2><span class="<?= $item_class ?>"></span>
-	<? if ($useShadowBox && ($item_class === "g-photo")) : ?>
-              <? // limit the title length to something reasonable (defaults to 15) ?>
-              <?= html::purify(text::limit_chars($left_album->title,
-                    module::get_var("gallery", "visible_title_length"))) ?>
-    <? else: ?>
     <a href="<?= $left_album->url() ?>">
               <? // limit the title length to something reasonable (defaults to 15) ?>
               <?= html::purify(text::limit_chars($left_album->title,
                     module::get_var("gallery", "visible_title_length"))) ?>
       
 	 </a>
-	<? endif ?>
     </h2>
     <ul class="g-metadata">
       <?= $theme->thumb_info($left_album) ?>
     </ul>
   </li>
   <li id="g-item-id-<?= $left_album->id ?>" class="g-item">
-    VS
+	<div>
+	<button type="button" class="like_button" onclick="voteChallenge('Left', <?= "{$child->id}" ?>, <?= "{$left_album->id}" ?>);" id="voteLeft-<?= $child->id ?>" style="float:left" >
+		<img src="<?= url::file("modules/comment/images/pixel-vfl73.gif"); ?>" alt=""> 
+	</button>	  
+    <span id="challengeVote-<?= $child->id ?>"><?= t($child->left_album_vote . " votes VS " . $child->right_album_vote) . " votes"?></span>
+	<button type="button" class="like_button" onclick="voteChallenge('Right', <?= "{$child->id}" ?>, <?= "{$right_album->id}" ?>);" id="voteRight-<?= $child->id ?>" style="float:right" >
+		<img src="<?= url::file("modules/comment/images/pixel-vfl73.gif"); ?>" alt=""> 
+	</button>
+	</div>
   </li>
   <li id="g-item-id-<?= $right_album->id ?>" class="g-item <?= $item_class ?>">
     <?= $theme->thumb_top($right_album) ?>
-	<? if ($useShadowBox && ( $item_class === "g-photo")) : ?>
-      <a href="<?= $right_album->file_url() ?>" class="g-fullsize-link" rel="shadowbox[<?= $item->parent()->title ?>]" title="<?= html::purify($right_album->title) ?>">
-    <? elseif ($useMagicPop && ( $item_class === "g-photo")) : ?>
-          <a href="<?= $right_album->file_url() ?>" class="g-magicpop-link" rel="<?= html::purify($right_album->description) ?>" title="<?= html::purify($right_album->title) ?>">
-    <? else: ?>
     <a href="<?= $right_album->url() ?>">
-	<? endif ?>
       <? if ($right_album->has_thumb()): ?>
       <?= $right_album->thumb_img(array("class" => "g-thumbnail")) ?>
       <? endif ?>
     </a>
     <?= $theme->thumb_bottom($right_album) ?>
-    <? //=$theme->context_menu($right_album, "#g-item-id-{$right_album->id} .g-thumbnail") ?>
+    <?= $theme->context_menu($right_album, "#g-item-id-{$right_album->id} .g-thumbnail") ?>
     <h2><span class="<?= $item_class ?>"></span>
-	<? if ($useShadowBox && ($item_class === "g-photo")) : ?>
-              <? // limit the title length to something reasonable (defaults to 15) ?>
-              <?= html::purify(text::limit_chars($right_album->title,
-                    module::get_var("gallery", "visible_title_length"))) ?>
-    <? else: ?>
     <a href="<?= $right_album->url() ?>">
               <? // limit the title length to something reasonable (defaults to 15) ?>
               <?= html::purify(text::limit_chars($right_album->title,
                     module::get_var("gallery", "visible_title_length"))) ?>
       
 	 </a>
-	<? endif ?>
     </h2>
     <ul class="g-metadata">
       <?= $theme->thumb_info($right_album) ?>
@@ -110,6 +86,6 @@ Shadowbox.init({
   <? endforeach ?>
 <? endif; ?>
 </ul>
-<? //= $theme->album_bottom() ?>
+<?= $theme->album_bottom() ?>
 
-<? //= $theme->paginator() ?>
+<?= $theme->paginator() ?>

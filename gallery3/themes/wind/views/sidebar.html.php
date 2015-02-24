@@ -1,5 +1,5 @@
 <?php defined("SYSPATH") or die("No direct script access.") ?>
-<?= $theme->sidebar_top() ?>
+<!-- <?= $theme->sidebar_top() ?> -->
 <div id="g-view-menu" class="g-buttonset ui-helper-clearfix">
   <? if ($page_subtype == "album"):?>
     <?= $theme->album_menu() ?>

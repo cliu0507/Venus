@@ -21,31 +21,42 @@
  */
 class Challenge_Controller extends Controller {
   public function index() {
-      $this->show(ORM::factory("album_challenge")->find_all());
+	  /* [dfw todo]: find_all should sort by "modify_time" & "DESC" */
+      $this->show(1);
   }
   
-  public function show($challenges) {
+  public function show($page_number) {
+	/* [dfw todo]: should find based on $page_number (offset) and $page_size (only got 6 records at one time). also should sort by "modify_time" & "DESC" */
+	$challenges = ORM::factory("album_challenge")->find_all();
+	
     if (!is_object($challenges)) {
       throw new Kohana_404_Exception();
     }
-    
-    $input = Input::instance();
-    
-    $page_size = module::get_var("gallery", "page_size", 9);
 
+	$top_album = ORM::factory("item", 1);
+	
+    $input = Input::instance();
+    $page_size = 6;	/*[dfw todo]: hardcode to be 6 (two challenges on one line, totally three lines) */
     $page = $input->get("page", "1");
     $children_count = $challenges->count();
     $offset = ($page - 1) * $page_size;
     $max_pages = max(ceil($children_count / $page_size), 1);
     
+    // Make sure that the page references a valid offset
+    if ($page < 1) {
+      url::redirect($top_album->abs_url());
+    } else if ($page > $max_pages) {
+      url::redirect($top_album->abs_url("page=$max_pages"));
+    }
+	
     $template = new Theme_View("page.html", "collection", "album");
     $template->set_global(
       array("page" => $page,
             "page_title" => "Fashion Challenge",
-		    "page_category" => 'Home',
+		    "page_category" => 'challengeShow',
             "max_pages" => $max_pages,
             "page_size" => $page_size,
-            "item" => NULL,
+            "item" => $top_album,
             "children" => $challenges,
             //"parents" => $album->parents()->as_array(), // view calls empty() on this
             //"breadcrumbs" => Breadcrumb::array_from_item_parents($album),
@@ -53,60 +64,92 @@ class Challenge_Controller extends Controller {
     $template->content = new View("challenge.html");
 
     print $template;
+	item::set_display_context_callback("Albums_Controller::get_display_context");
   }
   
   public function challenge_album($album_id) {
-    log::success('dfw', 'challenge album id = ' . $album_id);
-    
-    $album = ORM::factory("item", $album_id);
+	$album = ORM::factory("item", 1);
+	
+	access::required("view", $album);
 
-    print print $this->_get_challenge_form($album);
-  }
-  
-  private function _get_challenge_form($album)  {
-    $form = new Forge("challenge/create/{$album->id}", "", "post", array("id" => "g-challenge-album-form"));
-    $group = $form->group("challenge_album")
-      ->label(t("Please select your album to challenge album: %album_title", array("album_title" => html::purify($album->title))));
-    
-    $my_albums = $this->_get_my_albums();
+    $page_size = module::get_var("gallery", "page_size", 9);
+    $input = Input::instance();
+    $show = $input->get("show");
 
-    if(count($my_albums->size) == 0) {
-        
-    }
-    else {
-        
-    }
-
-    $group = $form->group("buttons")->label("");
-    $group->submit("")->value(t("Select"));
-    
-    return $form;
-  }
-  
-  private function _get_my_albums() {
-    $cur_user = identity::active_user();
-/*    
-    $my_albums = array();
-    foreach (db::build()
-             ->select(array("id", "name"))
-             ->from("items")
-             ->where("type", "=", "album")            
-             ->where("owner_id", "=", $cur_user->id)
-             ->order_by("created", "DESC")
-             ->execute() as $row) {
-      // Don't encode the names segment
-      $my_albums[] = array(rawurlencode($row->id), rawurlencode($row->name));
+    if ($show) {
+      $child = ORM::factory("item", $show);
+      $index = item::get_position($child);
+      if ($index) {
+        $page = ceil($index / $page_size);
+        if ($page == 1) {
+          url::redirect($album->abs_url());
+        } else {
+          url::redirect($album->abs_url("page=$page"));
+        }
+      }
     }
 
-    return $my_albums;
- */      
-    return ORM::factory("item")
-      ->where("type", "=", "album")
-      ->where("owner_id", "=", $cur_user->id)
-      ->order_by("items.created", "DESC")
-      ->find_all();
+	$cur_user = identity::active_user();
+	$where_clause = array(array("owner_id", "=", $cur_user->id),
+		                  array("challengeable", "=", 1),
+						  array("id", "!=", $album_id));
+	
+	$order_by = array("updated" => "DESC");
+	$order_by["id"] = "ASC";
+	
+    $page = $input->get("page", "1");
+	
+	$children_count = $album->viewable()->children_count($where_clause);
+	
+    $offset = ($page - 1) * $page_size;
+    $max_pages = max(ceil($children_count / $page_size), 1);
+
+    // Make sure that the page references a valid offset
+    if ($page < 1) {
+      url::redirect($album->abs_url());
+    } else if ($page > $max_pages) {
+      url::redirect($album->abs_url("page=$max_pages"));
+    }
+
+	$children = $album->viewable()->children($page_size, $offset, $where_clause, $order_by);
+	
+    $template = new Theme_View("page.html", "collection", "album");
+    $template->set_global(
+      array("page" => $page,
+            "page_title" => null,
+			"page_category" => 'challenge',
+		    "challengeId" => $album_id,
+            "max_pages" => $max_pages,
+            "page_size" => $page_size,
+            "item" => $album,
+            "children" => $children,
+            "parents" => $album->parents()->as_array(), // view calls empty() on this
+            "breadcrumbs" => Breadcrumb::array_from_item_parents($album),
+            "children_count" => $children_count));
+    $template->content = new View("album.html");
+
+    print $template;
   }
   
+  public function doing_challenge($left_id, $right_id) {
+    $now = time();
+	
+	/* [dfw todo]: is the challenge model complete? should we use the model->save method?
+	 * what if this challenge already exists (we should just update the modify time in this case)? */
+    db::build()->insert(
+      "album_challenges",
+      array("left_album_id" => $left_id,
+            "left_album_vote" => 0,
+            "right_album_id" => $right_id,
+            "right_album_vote" => 0,
+            "start_timestamp" => $now,
+            "active" => 1,
+            "modify_timestamp" => $now))
+      ->execute();
+	
+	$this->show(1);
+  }
+    
   public function installchallenge() {
     try {
       $db = Database::instance();

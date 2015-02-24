@@ -65,6 +65,7 @@ class DressSearch_Controller extends Controller {
       array("page" => $page,
             "max_pages" => $max_pages,
             "page_size" => $page_size,
+            "page_category" => "dresssearch",
             "breadcrumbs" => array(
               Breadcrumb::instance($root->title, $root->url())->set_first(),
               Breadcrumb::instance($q, url::abs_site("dresssearch?q=" . urlencode($q)))->set_last(),
