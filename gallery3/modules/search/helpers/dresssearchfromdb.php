@@ -51,6 +51,6 @@ class dresssearchfromdb_Core {
     $data = $db->query($query);
     $count = $result_count;
 
-    return array($count, new ORM_Iterator(ORM::factory("item"), $data));
+    return array($count, new ORM_Iterator(ORM::factory("item"), $data), $perc_array);
   }
 }

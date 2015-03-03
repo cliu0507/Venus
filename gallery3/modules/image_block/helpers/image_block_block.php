@@ -32,13 +32,17 @@ class image_block_block_Core {
       // @todo Consider another fallback if further optimizations are necessary.
       $items = array();
 		
-	  if($theme->page_category == 'challenge') {
+	  if ($theme->page_category == 'challenge') {
 		  $image_count = 1;
 		  $items[] = ORM::factory("item", $theme->challengeId);
 		  $title1 = "Album to Challenge";
 		  $title2 = "Album to Challenge";
-	  }
-	  else {
+	  } else if ($theme->page_category == "dresssearch") {
+        $image_count = 1;
+        $items[] = ORM::factory("item", 1);
+        $title1 = "Picture for Matching";
+		$title2 = "Picture for Matching";
+      } else {
 		$image_count = module::get_var("image_block", "image_count");
 		for ($i = 0; $i < $image_count; $i++) {
 			$attempts = 0;

@@ -52,4 +52,15 @@ class info_theme_Core {
     }
     return $results;
   }
+    
+  static function uploaded_img($theme, $img_name) {
+    list ($height, $width) = array(200, 300); //$this->scale_dimensions($max);
+    $attrs = array(
+              "src" => url::base() . "/var/uploads/" . $img_name,
+              "alt" => "uploaded file",
+              "width" => $width,
+              "height" => $height);
+    // html::image forces an absolute url which we don't want
+    return "<img" . html::attributes($attrs) . "/>";
+  }
 }

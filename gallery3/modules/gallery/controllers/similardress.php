@@ -24,13 +24,32 @@ class Similardress_Controller extends Controller {
     print $this->get_similar_dress_search_by_file_form();
   }
   
+  public function byfile() {
+    print $this->get_similar_dress_search_by_file_form();
+  }
+  
+  public function byurl() {
+    print $this->get_similar_dress_search_by_url_form();
+  }
+  
   public function get_similar_dress_search_by_file_form() {
     $form = new Forge("dresssearch/file", "", "post", array("id" => "g-search-similar-dress-by-file"));
-    $group = $form->group("add_album")->label(t("Search similar dress by file or url"));
+    $group = $form->group("add_album")->label(t("Search similar dress by file"));
 
     $group->upload("picture", "C:/Users/Public/Pictures/Sample Pictures/Chrysanthemum.jpg");
 
     $group->submit("")->value(t("Search by File"));
+
+    return $form;
+  }
+  
+  public function get_similar_dress_search_by_url_form() {
+    $form = new Forge("dresssearch/url", "", "post", array("id" => "g-search-similar-dress-by-url"));
+    $group = $form->group("add_album")->label(t("Search similar dress by url"));
+
+    $group->input("url", "https://www.google.com/images/srpr/logo11w.png");
+
+    $group->submit("")->value(t("Search by Url"));
 
     return $form;
   }

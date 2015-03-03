@@ -23,6 +23,7 @@ class Block_Core {
   public $id = null;
   public $title = null;
   public $anchor = null;
+  public $uploaded_file = null;
 
   public function __toString() {
     return View::factory("block.html", get_object_vars($this))->__toString();

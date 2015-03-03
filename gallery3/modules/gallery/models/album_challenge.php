@@ -78,9 +78,13 @@ class Album_Challenge_Model_Core extends ORM {
    * @chainable
    */
   public function viewable() {
-    $this->join("items", "items.id", "album_challenges.left_album_id");
+	/* [dfw todo]: for this kind of join (join with the same table twice), we have to give the
+	 * table alias. But kohana parses it wrong. One way to solve this is to store owner id
+	 * in the album_challenges table.
+	 */
+    //$this->join("items", "items.id", "album_challenges.left_album_id");
     $this->join("items", "items.id", "album_challenges.right_album_id");
-    return item::viewable($this);
+	return item::viewable($this);
   }
 
   /**

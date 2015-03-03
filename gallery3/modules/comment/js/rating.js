@@ -26,15 +26,24 @@ function vote(type, itemid) {
 
 function voteChallenge(type, challengeId, albumId) {
   $.post("comments/voteChallenge" + type + "/" + challengeId + "/" + albumId, {}, function(response) {
-    if (response.result === "success") {
+    if (response.result === "success") {	  
       var curValue = document.getElementById('challengeVote-' + challengeId).innerHTML;
+	  
 	  var parseRes = curValue.split(" ");
 	  
 	  if(type == 'Left') {
-		  document.getElementById('challengeVote-' + challengeId).value = (parseRes[0] + 1) + " votes VS " + parseRes[3] + " votes";
+		  var newStr = (parseInt(parseRes[0]) + 1) + " votes VS " + parseRes[3] + " votes";
+		  
+		  document.getElementById('voteLeft-' + challengeId).disabled = true;
+		  document.getElementById('voteLeft-' + challengeId).className = "like_button_clicked";
+		  document.getElementById('challengeVote-' + challengeId).innerHTML = newStr;
 	  }
 	  else {
-		  document.getElementById('challengeVote-' + challengeId).value = parseRes[0] + " votes VS " + (parseRes[3] + 1) + " votes";
+		  var newStr = parseRes[0] + " votes VS " + (parseInt(parseRes[3]) + 1) + " votes";
+		  
+		  document.getElementById('voteRight-' + challengeId).disabled = true;
+		  document.getElementById('voteRight-' + challengeId).className = "like_button_clicked";
+		  document.getElementById('challengeVote-' + challengeId).innerHTML = newStr;
 	  }
     }
   });

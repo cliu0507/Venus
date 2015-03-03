@@ -1,0 +1,52 @@
+
+<!DOCTYPE HTML>
+<html> 
+<body>
+
+<?php
+echo "Add image<br>";
+?>  
+<form action="myfashion.php" method="get">
+Command: <input type="text" name="command"><br>
+<input type="submit">
+</form>
+<body bgcolor="#CCFFCC">
+
+</body>
+</html>
+<!DOCTYPE HTML>
+<html> 
+<body>
+<?php
+echo "Delete image<br>";
+?>  
+<form action="myfashion.php" method="get">
+Command: <input type="text" name="command"><br>
+<input type="submit">
+</form>
+</body>
+</html>
+<!DOCTYPE HTML>
+<html> 
+<body>
+<?php
+echo "Query image by id<br>";
+?>  
+<form action="myfashion.php" method="get">
+Command: <input type="text" name="command"><br>
+<input type="submit">
+</form>
+</body>
+</html>
+<!DOCTYPE HTML>
+<html> 
+<body>
+<?php
+echo "Query image by path<br>";
+?>  
+<form action="myfashion.php" method="get">
+Command: <input type="text" name="command"><br>
+<input type="submit">
+</form>
+</body>
+</html>

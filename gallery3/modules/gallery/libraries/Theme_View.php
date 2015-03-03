@@ -162,6 +162,17 @@ class Theme_View_Core extends Gallery_View {
     return $menu->render();
   }
 
+  public function context_menu_challenge($challenge_id, $item, $thumbnail_css_selector) {
+    $menu = Menu::factory("root")
+      ->append(Menu::factory("submenu")
+               ->id("context_menu")
+               ->label(t("Options")))
+      ->css_class("g-context-menu");
+
+    module::event("context_menu_challenge", $menu, $this, $challenge_id, $item, $thumbnail_css_selector);
+    return $menu->render();
+  }
+  
   /**
    * Print out any site wide status information.
    */
@@ -215,6 +226,7 @@ class Theme_View_Core extends Gallery_View {
     case "sidebar_top":
     case "thumb_bottom":
     case "thumb_info":
+    case "uploaded_img":
     case "thumb_top":
       $blocks = array();
       if (method_exists("gallery_theme", $function)) {

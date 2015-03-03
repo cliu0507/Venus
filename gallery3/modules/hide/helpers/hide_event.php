@@ -52,6 +52,20 @@ class hide_event_Core {
     }
   }
 
+  static function context_menu_challenge($menu, $theme, $challenge_id, $item, $thumb_css_selector) {
+    if (hide::can_be_hidden($item) && hide::can_hide($item)) {
+      $csrf = access::csrf_token();
+      $link = self::_get_hide_link_data($item);
+
+      $menu
+        ->get("options_menu")
+        ->append(Menu::factory("ajax_link")
+                 ->label($link["text"])
+                 ->ajax_handler("function(data) { window.location.reload() }")
+                 ->url(url::site("display/".$link["action"]."/$item->id?csrf=$csrf")));
+    }
+  }
+  
   /**
    * Returns some data used to create a hide link.
    *

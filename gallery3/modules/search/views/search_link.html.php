@@ -13,20 +13,20 @@
     $menu = Menu::factory("root");
     $menu->append($my_dress_search_menu = Menu::factory("submenu")
                     ->id("search_dress")
-                    ->img(url::base() . "modules/search/images/similar-dress.png")
+                    ->img(url::base() . "modules/search/images/similar-dress-small.png")
                     ->label(t("Search Dress")));
-    $my_dress_search_menu->append(Menu::factory("link")
-                        ->id("search_by_file")
+    $my_dress_search_menu->append(Menu::factory("dialog")
+                        ->id("similar_dress")
                         ->label(t("Search by File"))
-                        ->url(url::site("albums/fshow/recent/my/12")));
-    $my_dress_search_menu->append(Menu::factory("link")
+                        ->url(url::site("similardress/byfile")));
+    $my_dress_search_menu->append(Menu::factory("dialog")
                         ->id("search_by_url")
                         ->label(t("Search by Url"))
-                        ->url(url::site("albums/fshow/recent/my/12")));
-    $my_dress_search_menu->append(Menu::factory("link")
+                        ->url(url::site("similardress/byurl")));
+/*    $my_dress_search_menu->append(Menu::factory("link")
                         ->id("search_by_photo")
                         ->label(t("Search by Photo"))
-                        ->url(url::site("albums/fshow/recent/my/12")));
+                        ->url(url::site("albums/fshow/recent/my/12")));*/
     ?>
     <?= $menu->render() ?>
     </div>

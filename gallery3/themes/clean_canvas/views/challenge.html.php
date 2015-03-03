@@ -20,7 +20,11 @@ Shadowbox.init({
 <? // @todo Set hover on AlbumGrid list items for guest users ?>
 <div id="g-info">
   <?= $theme->album_top() ?>
-  <h1>Fashion Challenges</h1>
+  <? if ($theme->page_category != "myChallenge"): ?>
+    <h1>Fashion Challenges</h1>
+  <? else: ?>
+    <h1>My Challenges</h1>
+  <? endif ?>	
 </div>
 
 <ul id="g-album-grid" class="ui-helper-clearfix">
@@ -38,7 +42,7 @@ Shadowbox.init({
       <? endif ?>
     </a>
     <?= $theme->thumb_bottom($left_album) ?>
-    <?= $theme->context_menu($left_album, "#g-item-id-{$left_album->id} .g-thumbnail") ?>
+	<?= $theme->context_menu_challenge($child->id, $left_album, "#g-item-id-{$left_album->id} .g-thumbnail") ?>
     <h2><span class="<?= $item_class ?>"></span>
     <a href="<?= $left_album->url() ?>">
               <? // limit the title length to something reasonable (defaults to 15) ?>
@@ -70,7 +74,7 @@ Shadowbox.init({
       <? endif ?>
     </a>
     <?= $theme->thumb_bottom($right_album) ?>
-    <?= $theme->context_menu($right_album, "#g-item-id-{$right_album->id} .g-thumbnail") ?>
+    <?= $theme->context_menu_challenge($child->id, $right_album, "#g-item-id-{$right_album->id} .g-thumbnail") ?>
     <h2><span class="<?= $item_class ?>"></span>
     <a href="<?= $right_album->url() ?>">
               <? // limit the title length to something reasonable (defaults to 15) ?>

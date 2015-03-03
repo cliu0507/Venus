@@ -281,7 +281,11 @@ form .g-error {
 #g-site-menu ul li ul , #g-dress-search-menu ul li ul{
   background-color: #CCC !important;
 }
-
+/*
+#g-dress-search-menu ul li ul li a  div img{
+  padding: 5px;
+}
+*/
 
 /* Context Menu  ~~~~~~~~~~~~~~~~~~~~~~~~~ */
 

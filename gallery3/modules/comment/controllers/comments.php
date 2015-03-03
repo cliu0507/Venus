@@ -95,7 +95,7 @@ class Comments_Controller extends Controller {
     try {
 	  db::build()
 		  ->update("album_challenges")
-		  ->set("left_album_vote", "left_album_vote + 1")
+		  ->set("left_album_vote", db::expr("`left_album_vote` + " . 1))
 		  ->where("id", "=", $challenge_id)
 		  ->execute();
       
@@ -105,14 +105,14 @@ class Comments_Controller extends Controller {
           "text" => Database_Exception::text($e)));
     }
 	
-	votelike($albumId);
+	//votelike($albumId);
   }
   
   public function voteChallengeRight($challenge_id, $albumId) {
     try {
 	  db::build()
 		  ->update("album_challenges")
-		  ->set("right_album_vote", "right_album_vote + 1")
+		  ->set("right_album_vote", db::expr("`right_album_vote` + " . 1))
 		  ->where("id", "=", $challenge_id)
 		  ->execute();
       
@@ -122,7 +122,7 @@ class Comments_Controller extends Controller {
           "text" => Database_Exception::text($e)));
     }
 	
-	votelike($albumId);
+	//votelike($albumId);
   }
   
   /// FIXME: is there any potential security holes, probably should be moved to admin_comments.php

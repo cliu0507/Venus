@@ -30,7 +30,8 @@ class Photos_Controller extends Items_Controller {
     $template = new Theme_View("page.html", "item", "photo");
     $template->set_global(array("item" => $photo,
                                 "children" => array(),
-                                "children_count" => 0));
+                                "children_count" => 0,
+                                "page_category" => "photo"));
     $template->set_global(item::get_display_context($photo));
     $template->content = new View("photo.html");
 

@@ -53,7 +53,7 @@ class DressSearch_Controller extends Controller {
 
     //$offset = ($page - 1) * $page_size;
 
-    list ($count, $result) =
+    list ($count, $result, $perc_array) =
       //dresssearchfromdb::search_within_album($q_with_more_terms, $album, $page_size, $offset);
       dresssearchfromdb::search_by_id(intval($q), $album);
 
@@ -92,6 +92,19 @@ class DressSearch_Controller extends Controller {
     json::reply(array("result" => "success", "location" => $location));
   }
   
+  public function url() {
+    $url = Input::instance()->post("url");
+    $directory = Kohana::config('upload.directory', TRUE);
+    $directory = rtrim($directory, '/') . '/';
+    $temp_filename = $directory . time() . "download.jpg";
+    if (file_put_contents($temp_filename, fopen($url, "r"))) {
+      $location = url::abs_site("dresssearch/byfile" . "?file=" . $temp_filename);
+      json::reply(array("result" => "success", "location" => $location));
+    } else {
+      json::reply(array("result" => "failure", "message" => "failed to download the file @ " . $url));
+    }
+  }
+  
   public function byfile() {
     $page_size = module::get_var("gallery", "page_size", 9);
     $file = Input::instance()->get("file");
@@ -113,7 +126,7 @@ class DressSearch_Controller extends Controller {
 
     //$offset = ($page - 1) * $page_size;
 
-    list ($count, $result) =
+    list ($count, $result, $perc_array) =
       //dresssearchfromdb::search_within_album($q_with_more_terms, $album, $page_size, $offset);
       dresssearchfromdb::search_by_file($file, $album);
 
@@ -125,6 +138,8 @@ class DressSearch_Controller extends Controller {
       array("page" => $page,
             "max_pages" => $max_pages,
             "page_size" => $page_size,
+            "page_category" => "dresssearch",
+            "uploaded_file" => basename($file),
             "breadcrumbs" => array(
               Breadcrumb::instance($root->title, $root->url())->set_first(),
             ),
@@ -133,6 +148,7 @@ class DressSearch_Controller extends Controller {
     $template->content = new View("search.html");
     $template->content->album = $album;
     $template->content->items = $result;
+    $template->content->perc_array = $perc_array;
     $template->content->q = "";
 
     print $template;
@@ -208,5 +224,26 @@ class DressSearch_Controller extends Controller {
       $result = dresssearchfromdb::search_by_file($q, $album);
     }
     return $result[1];
+  }
+  
+  private function downloadFile ($url, $path) {
+    $newfname = $path;
+    $file = fopen ($url, "rb");
+    if ($file) {
+      $newf = fopen ($newfname, "wb");
+
+      if ($newf)
+      while(!feof($file)) {
+        fwrite($newf, fread($file, 1024 * 8 ), 1024 * 8 );
+      }
+    }
+
+    if ($file) {
+      fclose($file);
+    }
+
+    if ($newf) {
+      fclose($newf);
+    }
   }
 }

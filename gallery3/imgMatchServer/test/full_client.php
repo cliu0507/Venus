@@ -1,13 +1,38 @@
-<?php
-$fp = stream_socket_client("tcp://127.0.0.1:9117", $errno, $errstr, 30);
 
-if (!$fp) {
-    echo "$errstr ($errno)<br />\n";
-} else {
-    fwrite($fp, "query_id:1:2:100");
-    while (!feof($fp)) {
-        echo fgets($fp, 1024);
-    }
-    fclose($fp);
-}
-?>
+<!DOCTYPE HTML>
+<html> 
+<body>
+
+<?php
+echo "Add image<br>";
+?>  
+<form action="myfashion.php" method="get">
+Command: <input type="text" name="Add"><br>
+<input type="submit">
+</form>
+
+<?php
+echo "Delete image<br>";
+?>  
+<form action="myfashion.php" method="get">
+Command: <input type="text" name="Delete"><br>
+<input type="submit">
+</form>
+
+<?php
+echo "Query image by id<br>";
+?>  
+<form action="myfashion.php" method="get">
+Command: <input type="text" name="ID"><br>
+<input type="submit">
+</form>
+
+<?php
+echo "Query image by path<br>";
+?>  
+<form action="myfashion.php" method="get">
+Command: <input type="text" name="path"><br>
+<input type="submit">
+</form>
+</body>
+</html>

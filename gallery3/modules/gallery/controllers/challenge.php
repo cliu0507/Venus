@@ -22,12 +22,29 @@
 class Challenge_Controller extends Controller {
   public function index() {
 	  /* [dfw todo]: find_all should sort by "modify_time" & "DESC" */
-      $this->show(1);
+      $this->show(1, 'all');
   }
   
-  public function show($page_number) {
+  public function show($page_number, $type) {
 	/* [dfw todo]: should find based on $page_number (offset) and $page_size (only got 6 records at one time). also should sort by "modify_time" & "DESC" */
-	$challenges = ORM::factory("album_challenge")->find_all();
+	if($type == 'my') {
+		$challengeType = 'myChallenge';
+		
+		$cur_user = identity::active_user();
+		
+		$challenges = ORM::factory("album_challenge")
+				->viewable()
+				->where("items.owner_id", "=", $cur_user->id)
+				->order_by("modify_timestamp", "DESC")				
+				->find_all();
+	}
+	else {
+		$challengeType = 'challengeShow';
+		
+		$challenges = ORM::factory("album_challenge")
+				->order_by("modify_timestamp", "DESC")
+				->find_all();
+	}
 	
     if (!is_object($challenges)) {
       throw new Kohana_404_Exception();
@@ -53,7 +70,7 @@ class Challenge_Controller extends Controller {
     $template->set_global(
       array("page" => $page,
             "page_title" => "Fashion Challenge",
-		    "page_category" => 'challengeShow',
+		    "page_category" => $challengeType,
             "max_pages" => $max_pages,
             "page_size" => $page_size,
             "item" => $top_album,
@@ -147,9 +164,18 @@ class Challenge_Controller extends Controller {
             "modify_timestamp" => $now))
       ->execute();
 	
-	$this->show(1);
+	$this->show(1, 'all');
   }
-    
+
+  public function unchallenge($challenge_id) {
+    db::build()
+      ->delete("album_challenges")
+      ->where("id", "=", $challenge_id)
+      ->execute();
+	
+	$this->show(1, 'all');
+  }
+  
   public function installchallenge() {
     try {
       $db = Database::instance();
